@@ -31,9 +31,10 @@ def Generate_Grid_3D_uniform(nx,ny,nz,NO):
     dy = (ymax-ymin)/ny
     dz = (zmax-zmin)/nz
     
-    x_grid_all = n.arange((xmin-NO2*dx),(xmax+NO2*dx),dx) # x loc of cell faces
-    y_grid_all = n.arange((ymin-NO2*dy),(ymax+NO2*dy),dy) # x loc of cell faces
-    z_grid_all = n.arange((zmin-NO2*dz),(zmax+NO2*dz),dz) # x loc of cell faces
+    #NB - The use of NO2+1 ensures equal number of gurad cells on each side
+    x_grid_all = n.arange((xmin-NO2*dx),(xmax+(NO2+1)*dx),dx) # x loc of cell faces
+    y_grid_all = n.arange((ymin-NO2*dy),(ymax+(NO2+1)*dy),dy) # x loc of cell faces
+    z_grid_all = n.arange((zmin-NO2*dz),(zmax+(NO2+1)*dz),dz) # x loc of cell faces
     
     X=n.zeros((n.size(x_grid_all),n.size(y_grid_all),n.size(z_grid_all)))
     Y=n.zeros((n.size(x_grid_all),n.size(y_grid_all),n.size(z_grid_all)))
