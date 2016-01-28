@@ -219,7 +219,9 @@ Nstep=1000
 Time = 0
 RealT=0
 step=0
-for step in n.arange(Nstep):
+imageNum=0
+while (Time < 5.0):
+#for step in n.arange(Nstep):
     Tstart=time.time()
     dt = MHDpy.getDT(rho,vx,vy,vz,bx,by,bz,p,gamma,dx,dy,dz,CFL)
     Time = Time + dt
@@ -497,7 +499,7 @@ for step in n.arange(Nstep):
     
     RealDT = time.time() - Tstart
     RealT = RealT + RealDT
-    
+    step = step +1
     # plot results
     if((step %50)==1):
         # check divB
@@ -521,9 +523,10 @@ for step in n.arange(Nstep):
             n.squeeze(rho[ic_act,jc_act,kc_act[0]]))
         pl.title('Simulation Time = %f' % Time)
         saveFigName = os.path.join('/Users/wiltbemj/Downloads/figs',
-                                    'ot-%06d.png'%step)
+                                    'ot-%06d.png'%imageNum)
         pl.savefig(saveFigName,dpi=100)
         pl.close()
+        imageNum = imageNum + 1
         print 'Loop %d Sim Time = %f Real Time = %f' % (step,Time,RealT)
         print 'Sim DT = %f Real DT = %f ' % (dt,RealDT)
         print ' Max(divB) = %f ' % n.max(n.abs(divB))
