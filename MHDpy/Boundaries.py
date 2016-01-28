@@ -72,53 +72,53 @@ def Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
     bj[ic_lb,:,:]  = bj[ic_act[-NO2:],:,:]
     bk[ic_lb,:,:]  = bk[ic_act[-NO2:],:,:]
     
+    #--periodic boundary - y direction
+    rho[:,jc_lb,:] =rho[:,jc_act[:,-NO2:,:],:]
+    vx[:,jc_lb,:]  = vx[:,jc_act[:,-NO2:,:],:]
+    vy[:,jc_lb,:]  = vy[:,jc_act[:,-NO2:,:],:]
+    vz[:,jc_lb,:]  = vz[:,jc_act[:,-NO2:,:],:]
+    p[:,jc_lb,:]   =  p[:,jc_act[:,-NO2:,:],:]
+    #'bi' has dimension [Ip1,J,K], so the J boundary use j-center active index
+    bi[:,jc_lb,:]  = bi[:,jc_act[:,-NO2:,:],:]
+    #'bj' has dimension [I,Jp1,K], so the J boundary use j-face active index   
+    bj[:,jf_lb,:]  = bj[:,jf_act[:,-NO2:,:],:]
+    #'bk' has dimension [I,J,Kp1], so the J boundary use j-center active index   
+    bk[:,jc_lb,:]  = bk[:,jc_act[:,-NO2:,:],:]   
+    
     # --periodic boundary - y direction
-    # rho[:,jc_lb,:] =rho[:,jc_act[:,-NO2:,:],:]
-    # vx[:,jc_lb,:]  = vx[:,jc_act[:,-NO2:,:],:]
-    # vy[:,jc_lb,:]  = vy[:,jc_act[:,-NO2:,:],:]
-    # vz[:,jc_lb,:]  = vz[:,jc_act[:,-NO2:,:],:]
-    # p[:,jc_lb,:]   =  p[:,jc_act[:,-NO2:,:],:]
-    #  'bi' has dimension [Ip1,J,K], so the J boundary use j-center active index
-    # bi[:,jc_lb,:]  = bi[:,jc_act[:,-NO2:,:],:]
-    #  'bj' has dimension [I,Jp1,K], so the J boundary use j-face active index   
-    # bj[:,jf_lb,:]  = bj[:,jf_act[:,-NO2,:],:]
-    #  'bk' has dimension [I,J,Kp1], so the J boundary use j-center active index   
-    # bk[:,kc_lb,:]  = bk[:,jc_act[:,-NO2:,:],:]   
-    # 
-    # # --periodic boundary - y direction
-    # rho[:,jc_rb,:] = rho[:,jc_act[:,:NO2,:],:]
-    # vx[:,jc_rb,:]  = vx[:,jc_act[:,:NO2,:],:]
-    # vy[:,jc_rb,:]  = vy[:,jc_act[:,:NO2,:],:]
-    # vz[:,jc_rb,:]  = vz[:,jc_act[:,:NO2,:],:]
-    # p[:,jc_rb,:]   =  p[:,jc_act[:,:NO2,:],:]
-    # bi[:,jc_rb,:]  = bi[:,jc_act[:,:NO2,:],:]
-    # bj[:,jf_rb,:]  = bj[:,jf_act[:,:NO2,:],:]
-    # bk[:,jc_rb,:]  = bk[:,jc_act[:,:NO2,:],:]
+    rho[:,jc_rb,:] = rho[:,jc_act[:,:NO2,:],:]
+    vx[:,jc_rb,:]  = vx[:,jc_act[:,:NO2,:],:]
+    vy[:,jc_rb,:]  = vy[:,jc_act[:,:NO2,:],:]
+    vz[:,jc_rb,:]  = vz[:,jc_act[:,:NO2,:],:]
+    p[:,jc_rb,:]   =  p[:,jc_act[:,:NO2,:],:]
+    bi[:,jc_rb,:]  = bi[:,jc_act[:,:NO2,:],:]
+    bj[:,jf_rb,:]  = bj[:,jf_act[:,:NO2,:],:]
+    bk[:,jc_rb,:]  = bk[:,jc_act[:,:NO2,:],:]
     
     # 
     # # --routflow boundary - y direction
-    rho[:,jc_lb,:] =rho[:,NO-jc_lb-1,:]
-    vx[:,jc_lb,:]  = vx[:,NO-jc_lb-1,:]
-    vy[:,jc_lb,:]  = vy[:,NO-jc_lb-1,:]
-    vz[:,jc_lb,:]  = vz[:,NO-jc_lb-1,:]
-    p[:,jc_lb,:]   =  p[:,NO-jc_lb-1,:]
-    #  'bi' has dimension [Ip1,J,K], so the J boundary use j-center active index
-    bi[:,jc_lb,:]  = bi[:,NO-jc_lb-1,:]
-    #  'bj' has dimension [I,Jp1,K], so the J boundary use j-face active index   
-    bj[:,jf_lb,:]  = bj[:,NO-jf_lb-1,:]
-    #  'bk' has dimension [I,J,Kp1], so the J boundary use j-center active index   
-    bk[:,jc_lb,:]  = bk[:,NO-jc_lb-1,:]   
-    
-    # --routflow boundary - y direction
-    rho[:,jc_rb,:] =rho[:,2*ny+NO-jc_rb-1,:]
-    vx[:,jc_rb,:]  = vx[:,2*ny+NO-jc_rb-1,:]
-    vy[:,jc_rb,:]  = vy[:,2*ny+NO-jc_rb-1,:]
-    vz[:,jc_rb,:]  = vz[:,2*ny+NO-jc_rb-1,:]
-    p[:,jc_rb,:]   =  p[:,2*ny+NO-jc_rb-1,:]
-    bi[:,jc_rb,:]  = bi[:,2*ny+NO-jc_rb-1,:]
-    bj[:,jf_rb,:]  = bj[:,2*ny+NO-jf_rb+1,:]
-    bk[:,jc_rb,:]  = bk[:,2*ny+NO-jc_rb-1,:]
-    
+    #rho[:,jc_lb,:] =rho[:,NO-jc_lb-1,:]
+    #vx[:,jc_lb,:]  = vx[:,NO-jc_lb-1,:]
+    #vy[:,jc_lb,:]  = vy[:,NO-jc_lb-1,:]
+    #vz[:,jc_lb,:]  = vz[:,NO-jc_lb-1,:]
+    #p[:,jc_lb,:]   =  p[:,NO-jc_lb-1,:]
+    ##  'bi' has dimension [Ip1,J,K], so the J boundary use j-center active index
+    #bi[:,jc_lb,:]  = bi[:,NO-jc_lb-1,:]
+    ##  'bj' has dimension [I,Jp1,K], so the J boundary use j-face active index   
+    #bj[:,jf_lb,:]  = bj[:,NO-jf_lb-1,:]
+    ##  'bk' has dimension [I,J,Kp1], so the J boundary use j-center active index   
+    #bk[:,jc_lb,:]  = bk[:,NO-jc_lb-1,:]   
+    #
+    ## --routflow boundary - y direction
+    #rho[:,jc_rb,:] =rho[:,2*ny+NO-jc_rb-1,:]
+    #vx[:,jc_rb,:]  = vx[:,2*ny+NO-jc_rb-1,:]
+    #vy[:,jc_rb,:]  = vy[:,2*ny+NO-jc_rb-1,:]
+    #vz[:,jc_rb,:]  = vz[:,2*ny+NO-jc_rb-1,:]
+    #p[:,jc_rb,:]   =  p[:,2*ny+NO-jc_rb-1,:]
+    #bi[:,jc_rb,:]  = bi[:,2*ny+NO-jc_rb-1,:]
+    #bj[:,jf_rb,:]  = bj[:,2*ny+NO-jf_rb+1,:]
+    #bk[:,jc_rb,:]  = bk[:,2*ny+NO-jc_rb-1,:]
+    #
     # # --routflow boundary - z direction
     # rho[:,:,kc_lb] =rho[:,:,NO-kc_lb-1]
     # vx[:,:,kc_lb]  = vx[:,:,NO-kc_lb-1]
