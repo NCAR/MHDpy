@@ -336,8 +336,8 @@ while (Time < 5.0):
     eng_flux_y = Feng_py + Feng_ny    
     
     # calculate magnetic stress in the Y direction
-    #[bx_left, bx_right] = reconstruct_3D(bx_h,if_act,jf_act,kf_act,
-    #                                    PDMB,2,limiter_type)   
+    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)   
     (by_left, by_right) = MHDpy.reconstruct_3D(by_h,if_act,jf_act,kf_act,
                                             PDMB,2,limiter_type)       
     (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,if_act,jf_act,kf_act,
