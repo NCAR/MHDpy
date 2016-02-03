@@ -33,3 +33,5 @@ The basic steps in the algorith are
 
 NOTE: The cell length should be included in the reconstruction process in order to obtain formal accuracy, which is probably more important in the curvilinear version of the solver. For uniform cartesian, doesn't matter.
 
+NOTE: This branch is for testing the changes to python type indexing
+
