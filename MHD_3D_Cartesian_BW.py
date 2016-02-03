@@ -56,7 +56,8 @@ limiter_type = 'PDM'  # 'PDM' - 8th order with PDM limiter
                       # 'WENO'- 5th order with WENO reconstruction 
                       #         (not tested in the getEk algorithm yet)
                       # 'PPM' - 3rd order PPM method (not tested yet)
-
+imagedir = '/Users/wiltbemj/Downloads/figs' # directory to store image files
+imagebase = 'bw' # base name of image files.
 # Grid information- nx,ny,nz are # of ACTIVE cells (no ghost cell included)
 # The generated grid are cell corners, the metric function will calculate
 # cell centers, faces and other grid information
@@ -114,57 +115,17 @@ p[xc>0.0]   = 0.1
 bi[:]  =  0.75
 bj[xj<0.0]  = 1.0
 bj[xj>0.0] = -1.0
-
-VecPot = 0# can use vector potential and Stokes theorm to calculate bi,bj,bk
-# Define Electric fields at cell edges
-#LAi = n.zeros((nx_total-1,ny_total,nz_total))
-#LAj = n.zeros((nx_total,ny_total-1,nz_total))
-#LAk = n.zeros((nx_total,ny_total,nz_total-1))
-#if (VecPot==1):
-#    # integrate Ax along x edge
-#    for i in ic_act:
-#        for j in jf_act:
-#            for k in kf_act:
-#                LAi[i,j,k] =  (x[i+1,j,k]-x[i,j,k])*(
-#                    GaussianLineIntegral(Ax,x[i+1,j,k],y[i+1,j,k],z[i+1,j,k],
-#                                    x[i,j,k],y[i,j,k],z[i,j,k]))
-#
-#    # integrate Ay along y edge
-#    for i in if_act:
-#        for j in jc_act:
-#            for k in kf_act:
-#                LAj[i,j,k] =  (y[i,j+1,k]-y[i,j,k])*(
-#                    GaussianLineIntegral(Ay,x[i,j+1,k],y[i,j+1,k],z[i,j+1,k],
-#                    x[i,j,k],y[i,j,k],z[i,j,k]))
-#
-#    # integrate Az along z edge
-#    for i in if_act:
-#        for j in jf_act:
-#            for k in kc_act:
-#                LAk[i,j,k] = (z[i,j,k+1]-z[i,j,k])*(
-#                    GaussianLineIntegral(Az,x[i,j,k+1],y[i,j,k+1],z[i,j,k+1],
-#                    x[i,j,k],y[i,j,k],z[i,j,k]))
-#
-#    # Stokes theorm for bi, bj, bk - face-integrated flux diveded by area
-#    i=if_actj=jc_actk=kc_act
-#    bi[i,j,k] = LAj[i,j,] - LAj[i,j,k+1] + LAk[i,j+1,k] - LAk[i,j,k]
-#    bi[i,j,k] = bi[i,j,k]/dy[i,j,k]/dz[i,j,k]
-#    
-#    i=ic_actj=jf_actk=kc_act
-#    bj[i,j,k] = -( LAi[i,j,k] - LAi[i,j,k+1] + LAk[i+1,j,k] - LAk[i,j,k] )
-#    bj[i,j,k] = bj[i,j,k]/dz[i,j,k]/dx[i,j,k]
-#    
-#    i=ic_actj=jc_actk=kf_act
-#    bk[i,j,k] = LAi[i,j,k] - LAi[i,j+1,k] + LAj[i+1,j,k] - LAj[i,j,k]
-#    bk[i,j,k] = bk[i,j,k]/dx[i,j,k]/dy[i,j,k]
-
 # set boundary conditions 
-# For Orszag-Tang vortex simulation, use periopdic for both x and y
+# For Brio-Wu shocktube simulation, use outflow for both x and y
+xbctype = 'OUT'
+ybctype = 'OUT'
+zbctype = 'OUT'
 MHDpy.Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
                 ic_act,jc_act,kc_act,
                 if_act,jf_act,kf_act,
                 ic_lb,ic_rb,jc_lb,jc_rb,kc_lb,kc_rb,
-                if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb)
+                if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb,
+                xtype=xbctype,ytype=ybctype,ztype=zbctype)
                 
 # calculate bx, by, bz at cell center, 2nd order accurate, equation (36) in
 # Lyon et al., [2004] (the 1/8 in Lyon et al., [2004] is actually a typo)
@@ -468,7 +429,8 @@ for step in n.arange(Nstep):
                     ic_act,jc_act,kc_act,
                     if_act,jf_act,kf_act,
                     ic_lb,ic_rb,jc_lb,jc_rb,kc_lb,kc_rb,
-                    if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb)  
+                    if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb,
+                    xtype=xbctype,ytype=ybctype,ztype=zbctype)  
                                             
     # calculate bx, by, bz at cell center, 2nd order accurate, since bi,
     # bj, bk are already modified use boundary conditions, no need bc here
@@ -509,22 +471,21 @@ for step in n.arange(Nstep):
         ax[0,1].set_title('Brio-Wu at %f'%Time)
         ax[0,2].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
                     n.squeeze(vx[ic_act,jc_act,kc_act]))
-        ax[0,2].set_ylim([-0.4,0.8])
+        ax[0,2].set_ylim([-2.0,0.0])
         ax[0,2].set_ylabel(r'$V_X$')
         ax[1,0].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
                     n.squeeze(vy[ic_act,jc_act,kc_act]))
-        ax[1,0].set_ylim([-2.0,0.0])
+        ax[1,0].set_ylim([-0.4,0.8])
         ax[1,0].set_ylabel(r'$V_Y$ ')
         ax[1,1].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
-                    n.squeeze(by[ic_act,jc_act,kc_act]))
+                    n.squeeze(bx[ic_act,jc_act,kc_act]))
         ax[1,1].set_ylim([-1.0,1.0])
-        ax[1,1].set_ylabel(r'$B_Y$')
+        ax[1,1].set_ylabel(r'$B_X$')
         ax[1,2].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
                     n.squeeze(bz[ic_act,jc_act,kc_act]))
         ax[1,2].set_ylim([-1.0,1.0])
         ax[1,2].set_ylabel(r'$B_Z$')
-        saveFigName = os.path.join('/Users/wiltbemj/Downloads/figs',
-                                    'bw-%06d.png'%imageNum)
+        saveFigName = os.path.join(imagedir,'%s-%06d.png'%(imagebase,imageNum))
         pl.savefig(saveFigName,dpi=100)
         pl.close()
         imageNum = imageNum + 1
