@@ -57,3 +57,7 @@ docs/_build/
 
 # PyBuilder
 target/
+
+.ipynb_checkpoints/Test-checkpoint.ipynb
+
+MHDpy/.ipynb_checkpoints/TestIndexMethod-checkpoint.ipynb
