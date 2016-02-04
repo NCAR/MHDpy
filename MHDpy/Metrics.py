@@ -24,6 +24,7 @@ def Metrics(x,y,z,NO):
     """
     import numpy as n 
     
+    print 'Python Index Version'
     (nx_total,ny_total,nz_total)=x.shape;
     NO2 = NO/2;
     
@@ -44,38 +45,40 @@ def Metrics(x,y,z,NO):
     Kp1 = n.arange(nz_total)[None,None,:]
     
     # locations for cell centers
-    xc = 0.125*( x[I,J,K] + x[I,J,K+1] + 
-                x[I+1,J,K+1] + x[I+1,J,K] + 
-                x[I,J+1,K] + x[I,J+1,K+1] + 
-                x[I+1,J+1,K+1] + x[I+1,J+1,K] )
-    yc = 0.125*( y[I,J,K] + y[I,J,K+1] + 
-                y[I+1,J,K+1] + y[I+1,J,K] + 
-                y[I,J+1,K] + y[I,J+1,K+1] + 
-                y[I+1,J+1,K+1] + y[I+1,J+1,K] )
-    zc = 0.125*( z[I,J,K] + z[I,J,K+1] + 
-                z[I+1,J,K+1] + z[I+1,J,K] + 
-                z[I,J+1,K] + z[I,J+1,K+1] + 
-                z[I+1,J+1,K+1] + z[I+1,J+1,K] )
+    xc = 0.125*( x[:-1,:-1,:-1] + x[:-1,:-1,1:] + 
+                x[1:,:-1,1:] + x[1:,:-1,:-1] + 
+                x[:-1,1:,:-1] + x[:-1,1:,1:] + 
+                x[1:,1:,1:] + x[1:,1:,:-1] )
+    yc = 0.125*( y[:-1,:-1,:-1] + y[:-1,:-1,1:] + 
+                y[1:,:-1,1:] + y[1:,:-1,:-1] + 
+                y[:-1,1:,:-1] + y[:-1,1:,1:] + 
+                y[1:,1:,1:] + y[1:,1:,:-1] )
+    zc = 0.125*( z[:-1,:-1,:-1] + z[:-1,:-1,1:] + 
+                z[1:,:-1,1:] + z[1:,:-1,:-1] + 
+                z[:-1,1:,:-1] + z[:-1,1:,1:] + 
+                z[1:,1:,1:] + z[1:,1:,:-1] )
+
+
     
     # locations for i-face centers -  where bi is defined 
-    xi = x[Ip1,J,K]
-    yi = 0.25*( y[Ip1,J,K] + y[Ip1,J+1,K] + y[Ip1,J,K+1] + y[Ip1,J+1,K+1] )
-    zi = 0.25*( z[Ip1,J,K] + z[Ip1,J+1,K] + z[Ip1,J,K+1] + z[Ip1,J+1,K+1] )
+    xi = x[:,:-1,:-1]
+    yi = 0.25*( y[:,:-1,:-1] + y[:,1:,:-1] + y[:,:-1,1:] + y[:,1:,1:] )
+    zi = 0.25*( z[:,:-1,:-1] + z[:,1:,:-1] + z[:,:-1,1:] + z[:,1:,1:] )
     
     # locations for j-face centers - where bj is defined 
-    xj = 0.25*( x[I,Jp1,K] + x[I+1,Jp1,K] + x[I,Jp1,K+1] + x[I+1,Jp1,K+1])
-    yj = y[I,Jp1,K];
-    zj = 0.25*( z[I,Jp1,K] + z[I+1,Jp1,K] + z[I,Jp1,K+1] + z[I+1,Jp1,K+1])
+    xj = 0.25*( x[:-1,:,:-1] + x[1:,:,:-1] + x[:-1,:,1:] + x[1:,:,1:])
+    yj = y[:-1,:,:-1];
+    zj = 0.25*( z[:-1,:,:-1] + z[1:,:,:-1] + z[:-1,:,1:] + z[1:,:,1:])
     
     # locations for k-face centers - where bk is defined 
-    xk = 0.25*( x[I,J,Kp1] + x[I+1,J,Kp1] + x[I,J+1,Kp1] + x[I+1,J+1,Kp1])
-    yk = 0.25*( y[I,J,Kp1] + y[I+1,J,Kp1] + y[I,J+1,Kp1] + y[I+1,J+1,Kp1])
-    zk = z[I,J,Kp1]
+    xk = 0.25*( x[:-1,:-1,:] + x[1:,:-1,:] + x[:-1,1:,:] + x[1:,1:,:])
+    yk = 0.25*( y[:-1,:-1,:] + y[1:,:-1,:] + y[:-1,1:,:] + y[1:,1:,:])
+    zk = z[:-1,:-1,:]
     
     # lengths of each cell edges
-    dx = x[I+1,J,K] - x[I,J,K]
-    dy = y[I,J+1,K] - y[I,J,K]
-    dz = z[I,J,K+1] - z[I,J,K]
+    dx = x[1:,:-1,:-1] - x[:-1,:-1,:-1]
+    dy = y[:-1,1:,:-1] - y[:-1,:-1,:-1]
+    dz = z[:-1,:-1,1:] - z[:-1,:-1,:-1]
     
     # index of active cell centers
     ic_act = n.arange(NO2,NO2+nx)[:,None,None]
