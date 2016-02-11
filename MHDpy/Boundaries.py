@@ -77,7 +77,7 @@ def Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
     elif (xtype == 'EXP'):
         # --zeroth order extraplation boundary - x direction
         #for left side want to replicate the first active cell
-        exp = n.zeros(NO2,dtype=n.integer)[:,None,None]
+        exp = n.zeros(NO2,dtype=n.integer)
         exp[:] = NO2
         #:NO2 give left boudnary cells
         rho[:NO2,:,:] =rho[exp,:,:]
@@ -150,17 +150,17 @@ def Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
     elif(ytype == 'EXP'):
         # --zeroth order extraplation boundary - y direction
         #for left side want to replicate the first active cell
-        exp = n.zeros(NO2,dtype=n.integer)[None,:,None]
+        exp = n.zeros(NO2,dtype=n.integer)
         exp[:] = NO2
         #:NO2 give left boudnary cells
-        rho[:,:NO2,:] =rho[exp]
-        vx[:,:NO2,:]  = vx[exp]
-        vy[:,:NO2,:]  = vy[exp]
-        vz[:,:NO2,:]  = vz[exp]
-        p[:,:NO2,:]   =  p[exp]
-        bi[:,:NO2,:]  = bi[exp]
-        bj[:,:NO2,:]  = bj[exp]
-        bk[:,:NO2,:]  = bk[exp]
+        rho[:,:NO2,:] =rho[:,exp,:]
+        vx[:,:NO2,:]  = vx[:,exp,:]
+        vy[:,:NO2,:]  = vy[:,exp,:]
+        vz[:,:NO2,:]  = vz[:,exp,:]
+        p[:,:NO2,:]   =  p[:,exp,:]
+        bi[:,:NO2,:]  = bi[:,exp,:]
+        bj[:,:NO2,:]  = bj[:,exp,:]
+        bk[:,:NO2,:]  = bk[:,exp,:]
         
         #for the right side replicate the last active cell
         exp[:] = ny + NO2 -1
@@ -223,7 +223,7 @@ def Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
     elif(ztype == 'EXP'):
         # --zeroth order extraplation boundary - z direction
         #for left side want to replicate the first active cell
-        exp = n.zeros(NO2,dtype=n.integer)[None,None,:]
+        exp = n.zeros(NO2,dtype=n.integer)
         exp[:] = NO2
         #:NO2 give left boudnary cells
         rho[:,:,:NO2] =rho[:,:,exp]
