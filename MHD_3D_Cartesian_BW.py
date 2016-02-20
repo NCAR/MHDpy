@@ -119,7 +119,7 @@ bj[xj>0.0] = -1.0
 # For Brio-Wu shocktube simulation, use outflow for both x and y
 xbctype = 'OUT'
 ybctype = 'OUT'
-zbctype = 'OUT'
+zbctype = 'EXP'
 MHDpy.Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
                 ic_act,jc_act,kc_act,
                 if_act,jf_act,kf_act,
@@ -471,20 +471,20 @@ for step in n.arange(Nstep):
         ax[0,1].set_title('Brio-Wu at %f'%Time)
         ax[0,2].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
                     n.squeeze(vx[ic_act,jc_act,kc_act]))
-        ax[0,2].set_ylim([-2.0,0.0])
+        ax[0,2].set_ylim([-0.4,0.8])
         ax[0,2].set_ylabel(r'$V_X$')
         ax[1,0].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
                     n.squeeze(vy[ic_act,jc_act,kc_act]))
-        ax[1,0].set_ylim([-0.4,0.8])
+        ax[1,0].set_ylim([-2.0,0.0])
         ax[1,0].set_ylabel(r'$V_Y$ ')
         ax[1,1].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
                     n.squeeze(bx[ic_act,jc_act,kc_act]))
         ax[1,1].set_ylim([-1.0,1.0])
         ax[1,1].set_ylabel(r'$B_X$')
         ax[1,2].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
-                    n.squeeze(bz[ic_act,jc_act,kc_act]))
+                    n.squeeze(by[ic_act,jc_act,kc_act]))
         ax[1,2].set_ylim([-1.0,1.0])
-        ax[1,2].set_ylabel(r'$B_Z$')
+        ax[1,2].set_ylabel(r'$B_Y$')
         saveFigName = os.path.join(imagedir,'%s-%06d.png'%(imagebase,imageNum))
         pl.savefig(saveFigName,dpi=100)
         pl.close()
