@@ -1,15 +1,11 @@
 """
 Compute average velocity at cell corner from cell centers
 """
-def center2corner(vx,I,J,K,ic_act,jc_act,kc_act,if_act,jf_act,kf_act,NO2,
-          PDMB,direction,limiter_type='PDM'):
+def center2corner(vx,NO2,PDMB,direction,limiter_type='PDM'):
     """
     Function compoutes average values at cell corners from cell centers.
     Requries:
         vx - velocity
-        I,J,K - locations of all cells
-        ic_act,jc_act,kc_act - location of active cell centers
-        if_act,jf_act,kf_act - location of active faces
         NO2 - Half numerical order
         PDMB - B parameter for PDM method
         direction - type of plane must be xy,yz,zx

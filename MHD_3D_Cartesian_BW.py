@@ -47,7 +47,7 @@ import MHDpy
 # Model Parameters
 NO = 8                # - default 8th order, hard coded for PDM
 NO2 = NO/2            # num of ghost cells on each end
-gamma=2.             # ratio of the specific heat, 5/3 for ideal gas
+gamma=5.0/3.0         # ratio of the specific heat, 5/3 for ideal gas
 CFL = 0.3             # Courant number
 PDMB= 4.0             # PDM beta parameter for controlling numerical diffusion
 limiter_type = 'PDM'  # 'PDM' - 8th order with PDM limiter
@@ -81,14 +81,8 @@ z = (z+0.0)/1.0 # z doesn't matter...
 # xi,yi,zi: i-face cetners where bi is defined
 # xj,yj,zj: j-face cetners where bj is defined
 # xk,yk,zk: k-face cetners where bk is defined
-# I,J,K: cell center indices including ghost cells
-# ic_act,jc_act,kc_act: indices for active cell centers
-# if_act,jf_act,kf_act: indices for active face centers
-# "lb"s are left boundary indices, "rb"s are right boundary indices,
-(xc,yc,zc,xi,yi,zi,xj,yj,zj,xk,yk,zk,dx,dy,dz,I,J,K,
-ic_act,jc_act,kc_act,if_act,jf_act,kf_act,
-ic_lb,jc_lb,kc_lb,if_lb,jf_lb,kf_lb,
-ic_rb,jc_rb,kc_rb,if_rb,jf_rb,kf_rb)=MHDpy.Metrics(x,y,z,NO)
+# dx,dy,dz: lengths of each cell edge
+(xc,yc,zc,xi,yi,zi,xj,yj,zj,xk,yk,zk,dx,dy,dz)=MHDpy.Metrics(x,y,z,NO)
 
 # Define premitive Hydrodynamic variables at cell center
 rho = n.zeros(xc.shape)
@@ -121,10 +115,6 @@ xbctype = 'OUT'
 ybctype = 'OUT'
 zbctype = 'EXP'
 MHDpy.Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
-                ic_act,jc_act,kc_act,
-                if_act,jf_act,kf_act,
-                ic_lb,ic_rb,jc_lb,jc_rb,kc_lb,kc_rb,
-                if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb,
                 xtype=xbctype,ytype=ybctype,ztype=zbctype)
                 
 # calculate bx, by, bz at cell center, 2nd order accurate, equation (36) in
@@ -161,6 +151,7 @@ Time = 0
 RealT=0
 step=0
 imageNum=0
+print 'About to compute'
 #while (Time < 5.0):
 for step in n.arange(Nstep):
     Tstart=time.time()
@@ -204,22 +195,16 @@ for step in n.arange(Nstep):
     
     #Step 2 Calculat the electric field, no resistivity term    
     (Ei,Ej,Ek) = MHDpy.getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
-                            I,J,K,ic_act,jc_act,kc_act,if_act,jf_act,kf_act,
                             NO2,PDMB,limiter_type)
     
     # Step 3 Calculate fluid and magnetic flux/stresses
     # a) Calculate fluid flux/stress in the x direction
     # # reconstruct cell centered primitive variables to cell faces
-    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,if_act,jf_act,kf_act,
-                                        NO2,PDMB,1,limiter_type)    
-    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,if_act,jf_act,kf_act,
-                                        NO2,PDMB,1,limiter_type)   
-    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,if_act,jf_act,kf_act,
-                                        NO2,PDMB,1,limiter_type)       
-    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,if_act,jf_act,kf_act,
-                                        NO2,PDMB,1,limiter_type)        
-    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,if_act,jf_act,kf_act,
-                                        NO2,PDMB,1,limiter_type)   
+    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,NO2,PDMB,1,limiter_type)    
+    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,NO2,PDMB,1,limiter_type)   
+    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,NO2,PDMB,1,limiter_type)       
+    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,NO2,PDMB,1,limiter_type)        
+    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,NO2,PDMB,1,limiter_type)   
     # use Gas-hydro flux flunction to calculate the net flux at cell faces
     # Here we use a Gaussian distribution, the temperature is fluid.
     # Can use waterbag in Lyon et al., [2004]. Results are very similar.
@@ -236,12 +221,9 @@ for step in n.arange(Nstep):
     
     # calculate magnetic stress in the x direction
     # Reconstruct the cell centered magnetic fields to cell faces
-    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,if_act,jf_act,kf_act,
-                                        NO2,PDMB,1,limiter_type)   
-    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,if_act,jf_act,kf_act,
-                                        NO2,PDMB,1,limiter_type)
-    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,if_act,jf_act,kf_act,
-                                        NO2,PDMB,1,limiter_type)
+    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,NO2,PDMB,1,limiter_type)   
+    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,NO2,PDMB,1,limiter_type)
+    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,NO2,PDMB,1,limiter_type)
     # Magnetic distribution function is also Gaussian, the "temperature" is
     # fluid+magnetic
     (Bstress_x_p, Bstress_y_p, Bstress_z_p,_, _,_) = MHDpy.getMagneticStress(
@@ -254,16 +236,11 @@ for step in n.arange(Nstep):
     BstressZ_x = Bstress_z_p + Bstress_z_n    
         
     #  b) Calculate Flux in the y direction    
-    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,2,limiter_type)    
-    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,2,limiter_type)   
-    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,2,limiter_type)       
-    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,2,limiter_type)        
-    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,2,limiter_type)   
+    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,NO2,PDMB,2,limiter_type)    
+    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,NO2,PDMB,2,limiter_type)   
+    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,NO2,PDMB,2,limiter_type)       
+    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,NO2,PDMB,2,limiter_type)        
+    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,NO2,PDMB,2,limiter_type)   
     
     (Frho_py,FrhoVx_py,FrhoVy_py,FrhoVz_py,Feng_py,_,_,_,_,_) = MHDpy.getHydroFlux(
                         rho_left,vx_left,vy_left,vz_left,p_left,gamma,2)
@@ -277,12 +254,9 @@ for step in n.arange(Nstep):
     eng_flux_y = Feng_py + Feng_ny    
     
     # calculate magnetic stress in the Y direction
-    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,2,limiter_type)   
-    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,2,limiter_type)       
-    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,2,limiter_type)      
+    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,NO2,PDMB,2,limiter_type)   
+    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,NO2,PDMB,2,limiter_type)       
+    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,NO2,PDMB,2,limiter_type)      
     
     (Bstress_x_p, Bstress_y_p, Bstress_z_p,_,_,_) = MHDpy.getMagneticStress(
         rho_left,vx_left,vy_left,vz_left,p_left,bx_left,by_left,bz_left,2)
@@ -294,16 +268,11 @@ for step in n.arange(Nstep):
     BstressZ_y = Bstress_z_p + Bstress_z_n    
     
     # c) Calculate Flux in the z direction
-    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,3,limiter_type)    
-    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,3,limiter_type)   
-    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,3,limiter_type)       
-    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,3,limiter_type)        
-    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,3,limiter_type)   
+    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,NO2,PDMB,3,limiter_type)    
+    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,NO2,PDMB,3,limiter_type)   
+    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,NO2,PDMB,3,limiter_type)       
+    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,NO2,PDMB,3,limiter_type)        
+    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,NO2,PDMB,3,limiter_type)   
     
     (Frho_px,FrhoVx_px,FrhoVy_px,FrhoVz_px,Feng_px,_,_,_,_,_) = MHDpy.getHydroFlux(
                     rho_left,vx_left,vy_left,vz_left,p_left,gamma,3)
@@ -317,12 +286,9 @@ for step in n.arange(Nstep):
     eng_flux_z = Feng_px + Feng_nx        
     
     # calculate magnetic stress in the Z direction
-    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,3,limiter_type)   
-    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,3,limiter_type)       
-    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,if_act,jf_act,kf_act,
-                                            NO2,PDMB,3,limiter_type)      
+    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,NO2,PDMB,3,limiter_type)   
+    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,NO2,PDMB,3,limiter_type)       
+    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,NO2,PDMB,3,limiter_type)      
     
     (Bstress_x_p, Bstress_y_p, Bstress_z_p,_,_,_) = MHDpy.getMagneticStress(
         rho_left,vx_left,vy_left,vz_left,p_left,bx_left,by_left,bz_left,3)
@@ -420,10 +386,6 @@ for step in n.arange(Nstep):
                                                                 
     # Step 7 Apply Boundary Conditions
     MHDpy.Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
-                    ic_act,jc_act,kc_act,
-                    if_act,jf_act,kf_act,
-                    ic_lb,ic_rb,jc_lb,jc_rb,kc_lb,kc_rb,
-                    if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb,
                     xtype=xbctype,ytype=ybctype,ztype=zbctype)  
                                             
     # calculate bx, by, bz at cell center, 2nd order accurate, since bi,

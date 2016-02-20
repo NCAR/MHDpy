@@ -2,8 +2,7 @@
 Compute the Electric field components on the cell edges
 """
 def getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
-          I,J,K,ic_act,jc_act,kc_act,if_act,jf_act,kf_act,NO2,
-          PDMB,limiter_type='PDM'):
+          NO2,PDMB,limiter_type='PDM'):
     """
     Function compoutes the electric field components along the cell edges using
     a high order constrained transport method on a Yee type grid.
@@ -12,9 +11,6 @@ def getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
         gamma - ratio of specific heats
         bi,bj,bk - magnetic fluxes on cell faces
         bx,by,bz - magnetic field at cell centers
-        I,J,K - locations of all cells
-        ic_act,jc_act,kc_act - location of active cell centers
-        if_act,jf_act,kf_act - location of active faces
         NO2 - half numerical order
         PDMB - B parameter for PDM method
         limiter_type - type of limiter to use in 
@@ -70,21 +66,17 @@ def getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
     ###########################################################################
     # step 1 - get an avg velocity at cell edges (vx_avg,vy_avg), plane = 'xy'
     # vx_avg - dimension [if_act,jf_act,kc_act]
-    vx_avg = MHDpy.center2corner(vx,I,J,K,ic_act,jc_act,kc_act,
-                                if_act,jf_act,kf_act,NO2,PDMB,'xy',limiter_type)
+    vx_avg = MHDpy.center2corner(vx,NO2,PDMB,'xy',limiter_type)
     # dimension [if_act,jf_act,kc_act] 
-    vy_avg = MHDpy.center2corner(vy,I,J,K,ic_act,jc_act,kc_act,
-                                if_act,jf_act,kf_act,NO2,PDMB,'xy',limiter_type) 
+    vy_avg = MHDpy.center2corner(vy,NO2,PDMB,'xy',limiter_type) 
     
     # step 2 - reconstruct face-centered bi in the y-direction (direction=2) to
     #          reconstruct face-centered bj in the x-direction (direction=1) to 
     #          cell edges
     # dimension [if_act,jf_act,kc_act]
 
-    [bi_left, bi_right] = MHDpy.reconstruct_3D(bi,if_act,jf_act,kc_act,NO2,PDMB,
-                                        2,limiter_type)
-    [bj_left, bj_right] = MHDpy.reconstruct_3D(bj,if_act,jf_act,kc_act,NO2,PDMB, 
-                                        1,limiter_type) 
+    [bi_left, bi_right] = MHDpy.reconstruct_3D(bi,NO2,PDMB,2,limiter_type)
+    [bj_left, bj_right] = MHDpy.reconstruct_3D(bj,NO2,PDMB,1,limiter_type) 
     
     # step 3 - pick the upwinded bi,bj based on the direction of vx_avg, vy_avg
     #          if vx_avg > 0, then bj_upwind = bj_left else bj_upwind = bj_right
@@ -125,11 +117,9 @@ def getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
     ###########################################################################
     # step 1 - get an average velocity at cell corners (vy_avg,vz_avg)
     # dimension [ic_act,jf_act,kf_act]
-    vy_avg = MHDpy.center2corner(vy,I,J,K,ic_act,jc_act,kc_act,
-                                if_act,jf_act,kf_act,NO2,PDMB,'yz',limiter_type)
+    vy_avg = MHDpy.center2corner(vy,NO2,PDMB,'yz',limiter_type)
     # dimension [ic_act,jf_act,kf_act] 
-    vz_avg = MHDpy.center2corner(vz,I,J,K,ic_act,jc_act,kc_act,
-                                if_act,jf_act,kf_act,NO2,PDMB,'yz',limiter_type) 
+    vz_avg = MHDpy.center2corner(vz,NO2,PDMB,'yz',limiter_type) 
     
     # step 2 - reconstruct face-centered bi, bj to cell corners
     #          bi is defined on xi[if_act,jc_act,kc_act], only need
@@ -137,11 +127,9 @@ def getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
 
     # dimension [ic_act,jf_act,kf_act]
     # recontruct_3D returns if_act,jf_act,kf_act so to get ic_act need :-1
-    [bj_left, bj_right] = MHDpy.reconstruct_3D(bj,ic_act,jf_act,kf_act,NO2,PDMB, 
-                                        3,limiter_type)
+    [bj_left, bj_right] = MHDpy.reconstruct_3D(bj,NO2,PDMB,3,limiter_type)
     # dimension [ic_act,jf_act,kf_act] 
-    [bk_left, bk_right] = MHDpy.reconstruct_3D(bk,ic_act,jf_act,kf_act,NO2,PDMB, 
-                                        2,limiter_type) 
+    [bk_left, bk_right] = MHDpy.reconstruct_3D(bk,NO2,PDMB,2,limiter_type) 
     
     # step 3 - pick the upwinded bi,bj based on the direction of vx_avg, vy_avg
     # recontruct_3D returns if_act,jf_act,kf_act so we need
@@ -173,22 +161,18 @@ def getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
     # calculate Ej using 2D splitting - Lyon et al., [2004]
     # step 1 - get an average velocity at cell corners (vz_avg,vx_avg)
     # dimension [if_act,jc_act,kf_act]
-    vz_avg = MHDpy.center2corner(vz,I,J,K,ic_act,jc_act,kc_act,
-                                if_act,jf_act,kf_act,NO2,PDMB,'zx',limiter_type)
+    vz_avg = MHDpy.center2corner(vz,NO2,PDMB,'zx',limiter_type)
     # dimension [if_act,jc_act,kf_act] 
-    vx_avg = MHDpy.center2corner(vx,I,J,K,ic_act,jc_act,kc_act,
-                                if_act,jf_act,kf_act,NO2,PDMB,'zx',limiter_type) 
+    vx_avg = MHDpy.center2corner(vx,NO2,PDMB,'zx',limiter_type) 
     
     # step 2 - reconstruct face-centered bi, bj to cell corners
     #          bi is defined on xi[if_act,jc_act,kc_act], only need
     #          reconstruction once in the j-direction
     # dimension [if_act,jc_act,kf_act]
     # recontruct_3D returns if_act,jf_act,kf_act so to get jc_act need :-1
-    [bi_left, bi_right] = MHDpy.reconstruct_3D(bi,if_act,jc_act,kf_act,NO2,PDMB, 
-                                        3,limiter_type)
+    [bi_left, bi_right] = MHDpy.reconstruct_3D(bi,NO2,PDMB,3,limiter_type)
     # dimension [if_act,jc_act,kf_act] 
-    [bk_left, bk_right] = MHDpy.reconstruct_3D(bk,if_act,jc_act,kf_act,NO2,PDMB, 
-                                        1,limiter_type) 
+    [bk_left, bk_right] = MHDpy.reconstruct_3D(bk,NO2,PDMB,1,limiter_type) 
     
     # step 3 - pick the upwinded bi,bj based on the direction of vx_avg, vy_avg
     # recontruct_3D returns if_act,jf_act,kf_act so we need

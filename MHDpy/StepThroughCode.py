@@ -47,7 +47,7 @@ import MHDpy
 # Model Parameters
 NO = 8                # - default 8th order, hard coded for PDM
 NO2 = NO/2            # num of ghost cells on each end
-gamma=5.0/3.0         # ratio of the specific heat, 5/3 for ideal gas
+gamma=2.             # ratio of the specific heat, 5/3 for ideal gas
 CFL = 0.3             # Courant number
 PDMB= 4.0             # PDM beta parameter for controlling numerical diffusion
 limiter_type = 'PDM'  # 'PDM' - 8th order with PDM limiter
@@ -57,12 +57,12 @@ limiter_type = 'PDM'  # 'PDM' - 8th order with PDM limiter
                       #         (not tested in the getEk algorithm yet)
                       # 'PPM' - 3rd order PPM method (not tested yet)
 imagedir = '/Users/wiltbemj/Downloads/figs' # directory to store image files
-imagebase = 'ot-pi' # base name of image files.
+imagebase = 'bw' # base name of image files.
 # Grid information- nx,ny,nz are # of ACTIVE cells (no ghost cell included)
 # The generated grid are cell corners, the metric function will calculate
 # cell centers, faces and other grid information
 nx = 128
-ny = 128
+ny = 1
 nz = 1
 (x,y,z)=MHDpy.Generate_Grid_3D_uniform(nx,ny,nz,NO) # This function generate a 
                                                # uniformly distributed active 
@@ -72,17 +72,23 @@ nz = 1
 (nx_total,ny_total,nz_total)=x.shape           # with NO/2 ghost cells, 
                                                # nx_total, ny_total, nz_total 
                                                # are total num of cell corners
-x = (x+1.0)/2.0 # map the grid from [-1 1] to [-0.5 -.5]
-y = (y+1.0)/2.0 # map the grid from [-1 1] to [-0.5 0.5]
-z = (z+0.0)/1.0 # z doesn't matter..
+x = (x+0.0)/1.0 # leave the grid on [-1 1]
+y = (y+0.0)/1.0 # y doesn't matter...
+z = (z+0.0)/1.0 # z doesn't matter...
 
 # Calculate grids and indices
 # xc,yc,zc: cell centers
 # xi,yi,zi: i-face cetners where bi is defined
 # xj,yj,zj: j-face cetners where bj is defined
 # xk,yk,zk: k-face cetners where bk is defined
-# dx,dy,dz: lengths of each cell edge
-(xc,yc,zc,xi,yi,zi,xj,yj,zj,xk,yk,zk,dx,dy,dz)=MHDpy.Metrics(x,y,z,NO)
+# I,J,K: cell center indices including ghost cells
+# ic_act,jc_act,kc_act: indices for active cell centers
+# if_act,jf_act,kf_act: indices for active face centers
+# "lb"s are left boundary indices, "rb"s are right boundary indices,
+(xc,yc,zc,xi,yi,zi,xj,yj,zj,xk,yk,zk,dx,dy,dz,I,J,K,
+ic_act,jc_act,kc_act,if_act,jf_act,kf_act,
+ic_lb,jc_lb,kc_lb,if_lb,jf_lb,kf_lb,
+ic_rb,jc_rb,kc_rb,if_rb,jf_rb,kf_rb)=MHDpy.Metrics(x,y,z,NO)
 
 # Define premitive Hydrodynamic variables at cell center
 rho = n.zeros(xc.shape)
@@ -101,47 +107,31 @@ Ei = n.zeros((nx_total-1,ny_total,nz_total))
 Ej = n.zeros((nx_total,ny_total-1,nz_total))
 Ek = n.zeros((nx_total,ny_total,nz_total-1))
   
-# 2-D Orzag-Tang vortex
-rho = rho+25.0/(n.pi*36.0)
-p   = p+5.0/(n.pi*12.0)
-vx  = -n.sin(2.0*n.pi*yc)
-vy  =  n.sin(2.0*n.pi*xc)
-bi  = -1.0/n.sqrt(4.0*n.pi)*n.sin(2*n.pi*yi)
-bj  = 1.0/n.sqrt(4.0*n.pi)*n.sin(2*n.pi*2*xj)
-
+# 1-D Brio-Wu shock tube problem
+rho[xc<0.0] = 1.0
+rho[xc>0.0] = 0.125
+p[xc<0.0]   = 1.0
+p[xc>0.0]   = 0.1
+bi[:]  =  0.75
+bj[xj<0.0]  = 1.0
+bj[xj>0.0] = -1.0
 # set boundary conditions 
-# For Orszag-Tang vortex simulation, use periopdic for both x and y
-xbctype = 'PER'
-ybctype = 'PER'
-zbctype = 'EXP'
+# For Brio-Wu shocktube simulation, use outflow for both x and y
+xbctype = 'OUT'
+ybctype = 'OUT'
+zbctype = 'OUT'
 MHDpy.Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
+                ic_act,jc_act,kc_act,
+                if_act,jf_act,kf_act,
+                ic_lb,ic_rb,jc_lb,jc_rb,kc_lb,kc_rb,
+                if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb,
                 xtype=xbctype,ytype=ybctype,ztype=zbctype)
                 
 # calculate bx, by, bz at cell center, 2nd order accurate, equation (36) in
 # Lyon et al., [2004] (the 1/8 in Lyon et al., [2004] is actually a typo)
-bx = (bi[1:,:,:] + bi[:-1,:,:])/2.
-by = (bj[:,1:,:] + bj[:,:-1,:])/2.
-bz = (bk[:,:,1:] + bk[:,:,:-1])/2.
-
-# check if the electric field calculation is correct (and boundary cond)
-# calculate edge-centered electric field 
-(Ei,Ej,Ek) = MHDpy.getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
-                        NO2,PDMB,limiter_type)
-# calculate cell-centered electric field: E = -vxB
-Ez = -(vx*by - vy*bx)
-
-# check if the electric field calculation is correct (and boundary cond)
-# calculate edge-centered electric field 
-#fig,ax = pl.subplots(ncols=2,figsize=(16,8))
-#ax[0].pcolor(n.squeeze(xc[NO2:-NO2,NO2:-NO2,NO2:-NO2]),
-#             n.squeeze(yc[NO2:-NO2,NO2:-NO2,NO2:-NO2]),
-#             n.squeeze(Ez[NO2:-NO2,NO2:-NO2,NO2:-NO2]))
-#ax[0].set_title('Ez')
-#ax[1].pcolor(n.squeeze(x[NO2:-NO2,NO2:-NO2,NO2:-NO2-1]),
-#            n.squeeze(y[NO2:-NO2,NO2:-NO2,NO2:-NO2-1]),
-#            n.squeeze(Ek))
-#ax[1].set_title('Ek')
-#pl.draw()
+bx = (bi[I+1,J,K] + bi[I,J,K])/2.
+by = (bj[I,J+1,K] + bj[I,J,K])/2.
+bz = (bk[I,J,K+1] + bk[I,J,K])/2.
 
 # Get conserved hydrodynamic variables
 (rho,rhovx,rhovy,rhovz,eng) = MHDpy.getConservedVariables(rho,vx,vy,vz,p,gamma)
@@ -171,10 +161,8 @@ Time = 0
 RealT=0
 step=0
 imageNum=0
-print 'About to compute'
-while (Time < 5.0):
-#for step in n.arange(Nstep):
-    
+#while (Time < 5.0):
+for step in n.arange(Nstep):
     Tstart=time.time()
     dt = MHDpy.getDT(rho,vx,vy,vz,bx,by,bz,p,gamma,dx,dy,dz,CFL)
     Time = Time + dt
@@ -216,16 +204,22 @@ while (Time < 5.0):
     
     #Step 2 Calculat the electric field, no resistivity term    
     (Ei,Ej,Ek) = MHDpy.getEk(vx,vy,vz,rho,p,gamma,bi,bj,bk,bx,by,bz,
-                            NO2,PDMB,limiter_type)
+                            I,J,K,ic_act,jc_act,kc_act,if_act,jf_act,kf_act,
+                            PDMB,limiter_type)
     
     # Step 3 Calculate fluid and magnetic flux/stresses
     # a) Calculate fluid flux/stress in the x direction
     # # reconstruct cell centered primitive variables to cell faces
-    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,NO2,PDMB,1,limiter_type)    
-    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,NO2,PDMB,1,limiter_type)   
-    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,NO2,PDMB,1,limiter_type)       
-    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,NO2,PDMB,1,limiter_type)        
-    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,NO2,PDMB,1,limiter_type)   
+    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,if_act,jf_act,kf_act,
+                                        PDMB,1,limiter_type)    
+    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,if_act,jf_act,kf_act,
+                                        PDMB,1,limiter_type)   
+    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,if_act,jf_act,kf_act,
+                                        PDMB,1,limiter_type)       
+    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,if_act,jf_act,kf_act,
+                                        PDMB,1,limiter_type)        
+    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,if_act,jf_act,kf_act,
+                                        PDMB,1,limiter_type)   
     # use Gas-hydro flux flunction to calculate the net flux at cell faces
     # Here we use a Gaussian distribution, the temperature is fluid.
     # Can use waterbag in Lyon et al., [2004]. Results are very similar.
@@ -242,9 +236,12 @@ while (Time < 5.0):
     
     # calculate magnetic stress in the x direction
     # Reconstruct the cell centered magnetic fields to cell faces
-    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,NO2,PDMB,1,limiter_type)   
-    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,NO2,PDMB,1,limiter_type)
-    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,NO2,PDMB,1,limiter_type)
+    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,if_act,jf_act,kf_act,
+                                        PDMB,1,limiter_type)   
+    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,if_act,jf_act,kf_act,
+                                        PDMB,1,limiter_type)
+    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,if_act,jf_act,kf_act,
+                                        PDMB,1,limiter_type)
     # Magnetic distribution function is also Gaussian, the "temperature" is
     # fluid+magnetic
     (Bstress_x_p, Bstress_y_p, Bstress_z_p,_, _,_) = MHDpy.getMagneticStress(
@@ -257,11 +254,16 @@ while (Time < 5.0):
     BstressZ_x = Bstress_z_p + Bstress_z_n    
         
     #  b) Calculate Flux in the y direction    
-    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,NO2,PDMB,2,limiter_type)    
-    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,NO2,PDMB,2,limiter_type)   
-    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,NO2,PDMB,2,limiter_type)       
-    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,NO2,PDMB,2,limiter_type)        
-    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,NO2,PDMB,2,limiter_type)   
+    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)    
+    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)   
+    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)       
+    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)        
+    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)   
     
     (Frho_py,FrhoVx_py,FrhoVy_py,FrhoVz_py,Feng_py,_,_,_,_,_) = MHDpy.getHydroFlux(
                         rho_left,vx_left,vy_left,vz_left,p_left,gamma,2)
@@ -275,9 +277,12 @@ while (Time < 5.0):
     eng_flux_y = Feng_py + Feng_ny    
     
     # calculate magnetic stress in the Y direction
-    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,NO2,PDMB,2,limiter_type)   
-    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,NO2,PDMB,2,limiter_type)       
-    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,NO2,PDMB,2,limiter_type)      
+    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)   
+    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)       
+    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,if_act,jf_act,kf_act,
+                                            PDMB,2,limiter_type)      
     
     (Bstress_x_p, Bstress_y_p, Bstress_z_p,_,_,_) = MHDpy.getMagneticStress(
         rho_left,vx_left,vy_left,vz_left,p_left,bx_left,by_left,bz_left,2)
@@ -289,11 +294,16 @@ while (Time < 5.0):
     BstressZ_y = Bstress_z_p + Bstress_z_n    
     
     # c) Calculate Flux in the z direction
-    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,NO2,PDMB,3,limiter_type)    
-    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,NO2,PDMB,3,limiter_type)   
-    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,NO2,PDMB,3,limiter_type)       
-    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,NO2,PDMB,3,limiter_type)        
-    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,NO2,PDMB,3,limiter_type)   
+    (rho_left, rho_right) = MHDpy.reconstruct_3D(rho_h,if_act,jf_act,kf_act,
+                                            PDMB,3,limiter_type)    
+    (vx_left, vx_right) = MHDpy.reconstruct_3D(vx_h,if_act,jf_act,kf_act,
+                                            PDMB,3,limiter_type)   
+    (vy_left, vy_right) = MHDpy.reconstruct_3D(vy_h,if_act,jf_act,kf_act,
+                                            PDMB,3,limiter_type)       
+    (vz_left, vz_right) = MHDpy.reconstruct_3D(vz_h,if_act,jf_act,kf_act,
+                                            PDMB,3,limiter_type)        
+    (p_left, p_right) = MHDpy.reconstruct_3D(p_h,if_act,jf_act,kf_act,
+                                            PDMB,3,limiter_type)   
     
     (Frho_px,FrhoVx_px,FrhoVy_px,FrhoVz_px,Feng_px,_,_,_,_,_) = MHDpy.getHydroFlux(
                     rho_left,vx_left,vy_left,vz_left,p_left,gamma,3)
@@ -307,9 +317,12 @@ while (Time < 5.0):
     eng_flux_z = Feng_px + Feng_nx        
     
     # calculate magnetic stress in the Z direction
-    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,NO2,PDMB,3,limiter_type)   
-    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,NO2,PDMB,3,limiter_type)       
-    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,NO2,PDMB,3,limiter_type)      
+    (bx_left, bx_right) = MHDpy.reconstruct_3D(bx_h,if_act,jf_act,kf_act,
+                                            PDMB,3,limiter_type)   
+    (by_left, by_right) = MHDpy.reconstruct_3D(by_h,if_act,jf_act,kf_act,
+                                            PDMB,3,limiter_type)       
+    (bz_left, bz_right) = MHDpy.reconstruct_3D(bz_h,if_act,jf_act,kf_act,
+                                            PDMB,3,limiter_type)      
     
     (Bstress_x_p, Bstress_y_p, Bstress_z_p,_,_,_) = MHDpy.getMagneticStress(
         rho_left,vx_left,vy_left,vz_left,p_left,bx_left,by_left,bz_left,3)
@@ -322,41 +335,41 @@ while (Time < 5.0):
     
     # Step 4 update Hydro variables without magnetic stress - operator
     # splitting step withouth JxB force
-    rho[NO2:-NO2,NO2:-NO2,NO2:-NO2] = (rho0[NO2:-NO2,NO2:-NO2,NO2:-NO2] - 
-        dt/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(rho_flux_x[1:,:-1,:-1]-
-        rho_flux_x[:-1,:-1,:-1])- 
-        dt/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(rho_flux_y[:-1,1:,:-1]-
-        rho_flux_y[:-1,:-1,:-1]) -
-        dt/dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(rho_flux_z[:-1,:-1,1:]-
-        rho_flux_z[:-1,:-1,:-1]) )
-    rhovx[NO2:-NO2,NO2:-NO2,NO2:-NO2] = (rhovx0[NO2:-NO2,NO2:-NO2,NO2:-NO2] - 
-        dt/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vx_flux_x[1:,:-1,:-1]-
-        vx_flux_x[:-1,:-1,:-1]) - 
-        dt/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vx_flux_y[:-1,1:,:-1]-
-        vx_flux_y[:-1,:-1,:-1]) - 
-        dt/dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vx_flux_z[:-1,:-1,1:]-
-        vx_flux_z[:-1,:-1,:-1]) )
-    rhovy[NO2:-NO2,NO2:-NO2,NO2:-NO2] = (rhovy0[NO2:-NO2,NO2:-NO2,NO2:-NO2] - 
-        dt/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vy_flux_x[1:,:-1,:-1]-
-        vy_flux_x[:-1,:-1,:-1]) - 
-        dt/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vy_flux_y[:-1,1:,:-1]-
-        vy_flux_y[:-1,:-1,:-1]) - 
-        dt/dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vy_flux_z[:-1,:-1,1:]-
-        vy_flux_z[:-1,:-1,:-1]) )
-    rhovz[NO2:-NO2,NO2:-NO2,NO2:-NO2] = (rhovz0[NO2:-NO2,NO2:-NO2,NO2:-NO2] - 
-        dt/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vz_flux_x[1:,:-1,:-1]-
-        vz_flux_x[:-1,:-1,:-1]) - 
-        dt/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vz_flux_y[:-1,1:,:-1]-
-        vz_flux_y[:-1,:-1,:-1]) - 
-        dt/dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(vz_flux_z[:-1,:-1,1:]-
-        vz_flux_z[:-1,:-1,:-1]) )
-    eng[NO2:-NO2,NO2:-NO2,NO2:-NO2] = (eng0[NO2:-NO2,NO2:-NO2,NO2:-NO2] - 
-        dt/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(eng_flux_x[1:,:-1,:-1]-
-        eng_flux_x[:-1,:-1,:-1]) - 
-        dt/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(eng_flux_y[:-1,1:,:-1]-
-        eng_flux_y[:-1,:-1,:-1]) - 
-        dt/dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(eng_flux_z[:-1,:-1,1:]-
-        eng_flux_z[:-1,:-1,:-1]) )
+    rho[ic_act,jc_act,kc_act] = (rho0[ic_act,jc_act,kc_act] - 
+        dt/dx[ic_act,jc_act,kc_act]*(rho_flux_x[ic_act+1,jc_act,kc_act]-
+        rho_flux_x[ic_act,jc_act,kc_act])- 
+        dt/dy[ic_act,jc_act,kc_act]*(rho_flux_y[ic_act,jc_act+1,kc_act]-
+        rho_flux_y[ic_act,jc_act,kc_act]) -
+        dt/dz[ic_act,jc_act,kc_act]*(rho_flux_z[ic_act,jc_act,kc_act+1]-
+        rho_flux_z[ic_act,jc_act,kc_act]) )
+    rhovx[ic_act,jc_act,kc_act] = (rhovx0[ic_act,jc_act,kc_act] - 
+        dt/dx[ic_act,jc_act,kc_act]*(vx_flux_x[ic_act+1,jc_act,kc_act]-
+        vx_flux_x[ic_act,jc_act,kc_act]) - 
+        dt/dy[ic_act,jc_act,kc_act]*(vx_flux_y[ic_act,jc_act+1,kc_act]-
+        vx_flux_y[ic_act,jc_act,kc_act]) - 
+        dt/dz[ic_act,jc_act,kc_act]*(vx_flux_z[ic_act,jc_act,kc_act+1]-
+        vx_flux_z[ic_act,jc_act,kc_act]) )
+    rhovy[ic_act,jc_act,kc_act] = (rhovy0[ic_act,jc_act,kc_act] - 
+        dt/dx[ic_act,jc_act,kc_act]*(vy_flux_x[ic_act+1,jc_act,kc_act]-
+        vy_flux_x[ic_act,jc_act,kc_act]) - 
+        dt/dy[ic_act,jc_act,kc_act]*(vy_flux_y[ic_act,jc_act+1,kc_act]-
+        vy_flux_y[ic_act,jc_act,kc_act]) - 
+        dt/dz[ic_act,jc_act,kc_act]*(vy_flux_z[ic_act,jc_act,kc_act+1]-
+        vy_flux_z[ic_act,jc_act,kc_act]) )
+    rhovz[ic_act,jc_act,kc_act] = (rhovz0[ic_act,jc_act,kc_act] - 
+        dt/dx[ic_act,jc_act,kc_act]*(vz_flux_x[ic_act+1,jc_act,kc_act]-
+        vz_flux_x[ic_act,jc_act,kc_act]) - 
+        dt/dy[ic_act,jc_act,kc_act]*(vz_flux_y[ic_act,jc_act+1,kc_act]-
+        vz_flux_y[ic_act,jc_act,kc_act]) - 
+        dt/dz[ic_act,jc_act,kc_act]*(vz_flux_z[ic_act,jc_act,kc_act+1]-
+        vz_flux_z[ic_act,jc_act,kc_act]) )
+    eng[ic_act,jc_act,kc_act] = (eng0[ic_act,jc_act,kc_act] - 
+        dt/dx[ic_act,jc_act,kc_act]*(eng_flux_x[ic_act+1,jc_act,kc_act]-
+        eng_flux_x[ic_act,jc_act,kc_act]) - 
+        dt/dy[ic_act,jc_act,kc_act]*(eng_flux_y[ic_act,jc_act+1,kc_act]-
+        eng_flux_y[ic_act,jc_act,kc_act]) - 
+        dt/dz[ic_act,jc_act,kc_act]*(eng_flux_z[ic_act,jc_act,kc_act+1]-
+        eng_flux_z[ic_act,jc_act,kc_act]) )
     
     # get plasma pressure - now rho and p are solved (to O(dt)?)
     vx = rhovx/rho
@@ -367,27 +380,27 @@ while (Time < 5.0):
     # Step 5 apply the magnetic stress to the momentums - operator 
     # splitting step dealing with JxB force Since JxB doesn't heat the
     # plasma, pressure is not changed between the Step 4 and 5
-    rhovx[NO2:-NO2,NO2:-NO2,NO2:-NO2] = (rhovx[NO2:-NO2,NO2:-NO2,NO2:-NO2] - 
-        dt/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressX_x[1:,:-1,:-1]-
-        BstressX_x[:-1,:-1,:-1]) - 
-        dt/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressX_y[:-1,1:,:-1]-
-        BstressX_y[:-1,:-1,:-1]) - 
-        dt/dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressX_z[:-1,:-1,1:]-
-        BstressX_z[:-1,:-1,:-1]) )
-    rhovy[NO2:-NO2,NO2:-NO2,NO2:-NO2] = (rhovy[NO2:-NO2,NO2:-NO2,NO2:-NO2] - 
-        dt/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressY_x[1:,:-1,:-1]-
-        BstressY_x[:-1,:-1,:-1]) - 
-        dt/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressY_y[:-1,1:,:-1]-
-        BstressY_y[:-1,:-1,:-1]) - 
-        dt/dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressY_z[:-1,:-1,1:]-
-        BstressY_z[:-1,:-1,:-1]) )
-    rhovz[NO2:-NO2,NO2:-NO2,NO2:-NO2] = (rhovz[NO2:-NO2,NO2:-NO2,NO2:-NO2] - 
-        dt/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressZ_x[1:,:-1,:-1]-
-        BstressZ_x[:-1,:-1,:-1]) - 
-        dt/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressZ_y[:-1,1:,:-1]-
-        BstressZ_y[:-1,:-1,:-1]) - 
-        dt/dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*(BstressZ_z[:-1,:-1,1:]-
-        BstressZ_z[:-1,:-1,:-1]) )
+    rhovx[ic_act,jc_act,kc_act] = (rhovx[ic_act,jc_act,kc_act] - 
+        dt/dx[ic_act,jc_act,kc_act]*(BstressX_x[ic_act+1,jc_act,kc_act]-
+        BstressX_x[ic_act,jc_act,kc_act]) - 
+        dt/dy[ic_act,jc_act,kc_act]*(BstressX_y[ic_act,jc_act+1,kc_act]-
+        BstressX_y[ic_act,jc_act,kc_act]) - 
+        dt/dz[ic_act,jc_act,kc_act]*(BstressX_z[ic_act,jc_act,kc_act+1]-
+        BstressX_z[ic_act,jc_act,kc_act]) )
+    rhovy[ic_act,jc_act,kc_act] = (rhovy[ic_act,jc_act,kc_act] - 
+        dt/dx[ic_act,jc_act,kc_act]*(BstressY_x[ic_act+1,jc_act,kc_act]-
+        BstressY_x[ic_act,jc_act,kc_act]) - 
+        dt/dy[ic_act,jc_act,kc_act]*(BstressY_y[ic_act,jc_act+1,kc_act]-
+        BstressY_y[ic_act,jc_act,kc_act]) - 
+        dt/dz[ic_act,jc_act,kc_act]*(BstressY_z[ic_act,jc_act,kc_act+1]-
+        BstressY_z[ic_act,jc_act,kc_act]) )
+    rhovz[ic_act,jc_act,kc_act] = (rhovz[ic_act,jc_act,kc_act] - 
+        dt/dx[ic_act,jc_act,kc_act]*(BstressZ_x[ic_act+1,jc_act,kc_act]-
+        BstressZ_x[ic_act,jc_act,kc_act]) - 
+        dt/dy[ic_act,jc_act,kc_act]*(BstressZ_y[ic_act,jc_act+1,kc_act]-
+        BstressZ_y[ic_act,jc_act,kc_act]) - 
+        dt/dz[ic_act,jc_act,kc_act]*(BstressZ_z[ic_act,jc_act,kc_act+1]-
+        BstressZ_z[ic_act,jc_act,kc_act]) )
     
     # get velocities with magnetic stress - now vx, vy, vz are solved
     vx = rhovx/rho
@@ -395,53 +408,84 @@ while (Time < 5.0):
     vz = rhovz/rho
         
     # Step 6 update face-center magnetic fields (bi,bj,bk) through Faraday's law
-    bi[NO2:-NO2,NO2:-NO2,NO2:-NO2] = bi[NO2:-NO2,NO2:-NO2,NO2:-NO2] - dt*( 
-        1/dy[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]*(Ek[:,1:,:]-Ek[:,:-1,:]) -
-        1/dz[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]*(Ej[:,:,1:]-Ej[:,:,:-1]) )
-    bj[NO2:-NO2,NO2:-NO2,NO2:-NO2] = bj[NO2:-NO2,NO2:-NO2,NO2:-NO2] - dt*( 
-        1/dz[NO2:-NO2,NO2:-NO2+1,NO2:-NO2]*(Ei[:,:,1:]-Ei[:,:,:-1])-
-        1/dx[NO2:-NO2,NO2:-NO2+1,NO2:-NO2]*(Ek[1:,:,:]-Ek[:-1,:,:]) )
-    bk[NO2:-NO2,NO2:-NO2,NO2:-NO2] = bk[NO2:-NO2,NO2:-NO2,NO2:-NO2] - dt*( 
-        1/dx[NO2:-NO2,NO2:-NO2,NO2:-NO2+1]*(Ej[1:,:,:]-Ej[:-1,:,:])-
-        1/dy[NO2:-NO2,NO2:-NO2,NO2:-NO2+1]*(Ei[:,1:,:]-Ei[:,:-1,:]) )    
+    bi[if_act,jc_act,kc_act] = bi[if_act,jc_act,kc_act] - dt*( 
+        1/dy[if_act,jc_act,kc_act]*(Ek[if_act,jc_act+1,kc_act]-
+        Ek[if_act,jc_act,kc_act]) -
+        1/dz[if_act,jc_act,kc_act]*(Ej[if_act,jc_act,kc_act+1]-
+        Ej[if_act,jc_act,kc_act]) )
+    bj[ic_act,jf_act,kc_act] = bj[ic_act,jf_act,kc_act] - dt*( 
+        1/dz[ic_act,jf_act,kc_act]*(Ei[ic_act,jf_act,kc_act+1]-
+        Ei[ic_act,jf_act,kc_act])-
+        1/dx[ic_act,jf_act,kc_act]*(Ek[ic_act+1,jf_act,kc_act]-
+        Ek[ic_act,jf_act,kc_act]) )
+    bk[ic_act,jc_act,kf_act] = bk[ic_act,jc_act,kf_act] - dt*( 
+        1/dx[ic_act,jc_act,kf_act]*(Ej[ic_act+1,jc_act,kf_act]-
+        Ej[ic_act,jc_act,kf_act])-
+        1/dy[ic_act,jc_act,kf_act]*(Ei[ic_act,jc_act+1,kf_act]-
+        Ei[ic_act,jc_act,kf_act]) )    
                                                                 
     # Step 7 Apply Boundary Conditions
     MHDpy.Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
+                    ic_act,jc_act,kc_act,
+                    if_act,jf_act,kf_act,
+                    ic_lb,ic_rb,jc_lb,jc_rb,kc_lb,kc_rb,
+                    if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb,
                     xtype=xbctype,ytype=ybctype,ztype=zbctype)  
                                             
     # calculate bx, by, bz at cell center, 2nd order accurate, since bi,
     # bj, bk are already modified use boundary conditions, no need bc here
     # for bx, by, bz
-    bx = (bi[1:,:,:] + bi[:-1,:,:])/2.
-    by = (bj[:,1:,:] + bj[:,:-1,:])/2.
-    bz = (bk[:,:,1:] + bk[:,:,:-1])/2.
+    bx = (bi[I+1,J,K] + bi[I,J,K])/2
+    by = (bj[I,J+1,K] + bj[I,J,K])/2
+    bz = (bk[I,J,K+1] + bk[I,J,K])/2
     
     RealDT = time.time() - Tstart
     RealT = RealT + RealDT
-    step = step +1
+    #step = step +1
     # plot results
     if((step %50)==1):
         # check divB
-        divB =( ( (bi[NO2+1:-NO2,NO2:-NO2,NO2:-NO2] - 
-            bi[       NO2:-NO2-1,NO2:-NO2,NO2:-NO2])*
-            dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]*dz[NO2:-NO2,NO2:-NO2,NO2:-NO2] +
-            (bj[NO2:-NO2,NO2+1:-NO2,NO2:-NO2] - 
-            bj[ NO2:-NO2,NO2:-NO2-1,NO2:-NO2])*
-            dz[NO2:-NO2,NO2:-NO2,NO2:-NO2]*dx[NO2:-NO2,NO2:-NO2,NO2:-NO2] + 
-            (bk[NO2:-NO2,NO2:-NO2,NO2+1:-NO2] - 
-            bk[ NO2:-NO2,NO2:-NO2,NO2:-NO2-1])*
-            dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]*dy[NO2:-NO2,NO2:-NO2,NO2:-NO2] ) /
-            dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]/
-            dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]/
-            dz[NO2:-NO2,NO2:-NO2,NO2:-NO2])
+        divB = n.zeros((ic_act[-1,0,0]+1,jc_act[0,-1,0]+1,kc_act[0,0,-1]+1))
+        divB[ic_act,jc_act,kc_act] =( ( (bi[ic_act+1,jc_act,kc_act] - 
+            bi[ic_act,jc_act,kc_act])*
+            dy[ic_act,jc_act,kc_act]*dz[ic_act,jc_act,kc_act] +
+            (bj[ic_act,jc_act+1,kc_act] - 
+            bj[ic_act,jc_act,kc_act])*
+            dz[ic_act,jc_act,kc_act]*dx[ic_act,jc_act,kc_act] + 
+            (bk[ic_act,jc_act,kc_act+1] - 
+            bk[ic_act,jc_act,kc_act])*
+            dx[ic_act,jc_act,kc_act]*dy[ic_act,jc_act,kc_act] ) /
+            dx[ic_act,jc_act,kc_act]/
+            dy[ic_act,jc_act,kc_act]/
+            dz[ic_act,jc_act,kc_act])
     
-        pl.figure()
-        pl.pcolor(n.squeeze(xc[NO2:-NO2,NO2:-NO2,NO2:-NO2]),
-            n.squeeze(yc[NO2:-NO2,NO2:-NO2,NO2:-NO2]),
-            n.squeeze(rho[NO2:-NO2,NO2:-NO2,NO2:-NO2]))
-        pl.title('Simulation Time = %f' % Time)
+        fig,ax = pl.subplots(nrows=2,ncols=3,figsize=(12,4))
+        ax[0,0].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
+                    n.squeeze(rho[ic_act,jc_act,kc_act]))
+        ax[0,0].set_ylim([0,1.2])
+        ax[0,0].set_ylabel(r'$\rho$')
+        ax[0,1].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
+                    n.squeeze(p[ic_act,jc_act,kc_act]))
+        ax[0,1].set_ylim([0,1.2])
+        ax[0,1].set_ylabel(r'P')
+        ax[0,1].set_title('Brio-Wu at %f'%Time)
+        ax[0,2].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
+                    n.squeeze(vx[ic_act,jc_act,kc_act]))
+        ax[0,2].set_ylim([-0.4,0.8])
+        ax[0,2].set_ylabel(r'$V_X$')
+        ax[1,0].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
+                    n.squeeze(vy[ic_act,jc_act,kc_act]))
+        ax[1,0].set_ylim([-2.0,0.0])
+        ax[1,0].set_ylabel(r'$V_Y$ ')
+        ax[1,1].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
+                    n.squeeze(bx[ic_act,jc_act,kc_act]))
+        ax[1,1].set_ylim([-1.0,1.0])
+        ax[1,1].set_ylabel(r'$B_X$')
+        ax[1,2].plot(n.squeeze(xc[ic_act,jc_act,kc_act]),
+                    n.squeeze(by[ic_act,jc_act,kc_act]))
+        ax[1,2].set_ylim([-1.0,1.0])
+        ax[1,2].set_ylabel(r'$B_Y$')
         saveFigName = os.path.join(imagedir,'%s-%06d.png'%(imagebase,imageNum))
-        print saveFigName
         pl.savefig(saveFigName,dpi=100)
         pl.close()
         imageNum = imageNum + 1

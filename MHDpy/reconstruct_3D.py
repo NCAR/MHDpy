@@ -1,13 +1,11 @@
 """
 Compute the left and right states
 """
-def reconstruct_3D(rho_h,if_act,jf_act,kf_act,NO2,
-          PDMB,direction,limiter_type='PDM'):
+def reconstruct_3D(rho_h,NO2,PDMB,direction,limiter_type='PDM'):
     """
     Function compoutes the left and right states at the 
     Requries:
         rho_h - parameter to reconstruct
-        if_act,jf_act,kf_act - location of active faces
         NO2 - Half numerical order
         PDMB - B parameter for PDM method
         direction - 1 for x, 2 for y, and 3 for z

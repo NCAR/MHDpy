@@ -2,9 +2,6 @@
 Function for implementing boundary conditions
 """
 def Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
-               ic_act,jc_act,kc_act,if_act,jf_act,kf_act,
-               ic_lb,ic_rb,jc_lb,jc_rb,kc_lb,kc_rb,
-               if_lb,if_rb,jf_lb,jf_rb,kf_lb,kf_rb,
                xtype='PER',ytype='PER',ztype='PER'):
     """
     Function for apply peroidic, outflow, or extrapoloation BC.  At this time 
@@ -12,10 +9,6 @@ def Boundaries(rho,p,vx,vy,vz,bi,bj,bk,NO,
     Requries:
         rho,p,vx,vy,vz,bi,bj,bk - plasma and magentic field variables
         NO - order of numerical scheme to be applied
-        ic_act,jc_act,kc_act - indices for active cell centers 
-        if_act,jf_act,kf_act - indices for active face centers
-        ic_lb,jc_lb,kc_lb,if_lb,jf_lb,kf_lb - left boundary indices
-        ic_rb,jc_rb,kc_rb,if_rb,jf_rb,kf_rb - right boundary indices
         xtype,ytype,ztype - Type of BC PER - peroidic, OUT - outflow, 
                             EXP - extrapolation
     Returns:
