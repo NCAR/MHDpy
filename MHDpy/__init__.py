@@ -16,4 +16,6 @@ from TVD2 import *
 from TVD import *
 from WENO5 import *
 from sign1 import *
+from GaussLineInt import *
+from VectorPotential import *
 
