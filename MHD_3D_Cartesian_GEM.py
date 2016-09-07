@@ -41,7 +41,7 @@
 
 import numpy as n
 import pylab as pl
-import time,os
+import time,os,h5py
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.interpolate import interpolate
 import MHDpy
@@ -60,6 +60,9 @@ limiter_type = 'PDM'  # 'PDM' - 8th order with PDM limiter
                       # 'PPM' - 3rd order PPM method (not tested yet)
 imagedir = '/Users/wiltbemj/Downloads/figs' # directory to store image files
 imagebase = 'gem' # base name of image files.
+outdir = '/Users/wiltbemj/Downloads/MHDpy' # directory to store HDF5 files
+outbase = 'gem' # base name of HDF5 files.
+outint = 50 #Frequency to dump HDF5 files
 # Grid information- nx,ny,nz are # of ACTIVE cells (no ghost cell included)
 # The generated grid are cell corners, the metric function will calculate
 # cell centers, faces and other grid information
@@ -611,12 +614,44 @@ for step in n.arange(Nstep):
         print 'Loop %d Sim Time = %f Real  Time = %f' % (step,Time,RealT)
         print 'Sim DT = %f Real DT = %f ' % (dt,RealDT)
         print ' Max(divB) = %f ' % n.max(n.abs(divB))
+    if((step % outint)==1):
+        #Open the HDF5 file
+        hdf5Name = os.path.join(outdir,'%s-%06d.hdf5'%(outbase,step))
+        hdf5file = h5py.File(hdf5Name,'w')
+        #Add some global attributes
+        hdf5file.attrs['NO'] = NO
+        hdf5file.attrs['time'] = Time
+        hdf5file.attrs['step'] = step
+        #Write the Variables
+        dset = hdf5file.create_dataset('X',data=x)
+        dset = hdf5file.create_dataset('Y',data=y)
+        dset = hdf5file.create_dataset('Z',data=z)
+        dset = hdf5file.create_dataset('Rho',data=rho)
+        dset = hdf5file.create_dataset('P',data=p)
+        dset = hdf5file.create_dataset('Vx',data=vx)
+        dset = hdf5file.create_dataset('Vy',data=vy)
+        dset = hdf5file.create_dataset('Vz',data=vz)        
+        dset = hdf5file.create_dataset('Bx',data=bx)
+        dset = hdf5file.create_dataset('By',data=by)
+        dset = hdf5file.create_dataset('Bz',data=bz)
+        dset = hdf5file.create_dataset('Ei',data=Ei)
+        dset = hdf5file.create_dataset('Ej',data=Ej)
+        dset = hdf5file.create_dataset('Ek',data=Ek)        
+        dset = hdf5file.create_dataset('Bi',data=bi)
+        dset = hdf5file.create_dataset('Bj',data=bj)
+        dset = hdf5file.create_dataset('Bk',data=bk)
+        #Close the file
+        hdf5file.close()        
 
 fig,ax=pl.subplots(nrows=1)
 ax.plot(simTime,flux)
 ax.set_xlabel('Simulation Time')
 ax.set_ylabel('Flux')
+ax.set_title('Reconnected Flux')
 
+saveFigName = os.path.join(imagedir,'%s-flux.pdf'%(imagebase))
+print saveFigName
+pl.savefig(saveFigName)
 
 
 
