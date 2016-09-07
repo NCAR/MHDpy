@@ -42,6 +42,8 @@
 import numpy as n
 import pylab as pl
 import time,os
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.interpolate import interpolate
 import MHDpy
 
 # Model Parameters
@@ -61,11 +63,9 @@ imagebase = 'gem' # base name of image files.
 # Grid information- nx,ny,nz are # of ACTIVE cells (no ghost cell included)
 # The generated grid are cell corners, the metric function will calculate
 # cell centers, faces and other grid information
-nx = 128
-ny = 64
+nx = 64
+ny = 32
 nz = 1
-Lx=25.6*2;
-Ly=12.8;
 (x,y,z)=MHDpy.Generate_Grid_3D_uniform(nx,ny,nz,NO) # This function generate a 
                                                # uniformly distributed active 
                                                # grid between -1 and 1 with 
@@ -74,6 +74,12 @@ Ly=12.8;
 (nx_total,ny_total,nz_total)=x.shape           # with NO/2 ghost cells, 
                                                # nx_total, ny_total, nz_total 
                                                # are total num of cell corners
+
+x = (x+1.)/1.  #map the x grid from [-1 1] to [0 2]
+y = (y+0.)/1.
+z = (z+0.)/1.
+Lx=25.6
+Ly=12.8
 x=Lx/2*x
 y=Ly/2*y
 
@@ -122,23 +128,85 @@ n_inf=0.2*no
 Psi0=0.1
 
 bi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2] = (n.tanh(yi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]/lam)+
-    (n.pi/Ly)*Psi0*n.cos(2*2*n.pi*xi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]/Lx)*
+    (n.pi/Ly)*Psi0*n.cos(2*n.pi*xi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]/Lx)*
     n.sin(n.pi*yi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]/Ly))
-bj[NO2:-NO2,NO2:-NO2+1,NO2:-NO2]=((2*n.pi/Lx)*Psi0*
-    n.sin(2*2*n.pi*xj[NO2:-NO2,NO2:-NO2+1,NO2:-NO2]/Lx)*
+bj[NO2:-NO2,NO2:-NO2+1,NO2:-NO2]=1.0*((2*n.pi/Lx)*Psi0*
+    n.sin(2*n.pi*xj[NO2:-NO2,NO2:-NO2+1,NO2:-NO2]/Lx)*
     n.cos(n.pi*yj[NO2:-NO2,NO2:-NO2+1,NO2:-NO2]/Ly))
 bk[NO2:-NO2,NO2:-NO2,NO2:-NO2+1]=0
 rho[NO2:-NO2,NO2:-NO2,NO2:-NO2]=(no*
     (n_inf/no+(1/(n.cosh(yc[NO2:-NO2,NO2:-NO2,NO2:-NO2]/lam)))**2))
+p[NO2:-NO2,NO2:-NO2,NO2:-NO2]=0.5*(
+                            1.0/(n.cosh(yc[NO2:-NO2,NO2:-NO2,NO2:-NO2])))**2+0.2
 
+#Do Vector Potential Integration for Bi, Bj, Bk
+LAi = n.zeros(x.shape)
+LAj = n.zeros(x.shape)
+LAk = n.zeros(x.shape)
+for i in range(NO2,nx+NO2):
+    xijk = x[i,NO2:-NO2+1,NO2:-NO2+1]
+    xip1 = x[i+1,NO2:-NO2+1,NO2:-NO2+1]
+    yijk = y[i,NO2:-NO2+1,NO2:-NO2+1]
+    yip1 = y[i+1,NO2:-NO2+1,NO2:-NO2+1]
+    zijk = z[i,NO2:-NO2+1,NO2:-NO2+1]
+    zip1 = z[i+1,NO2:-NO2+1,NO2:-NO2+1]
+    LAi[i,NO2:-NO2+1,NO2:-NO2+1]=((x[i+1,NO2:-NO2+1,NO2:-NO2+1]-
+                               x[i,NO2:-NO2+1,NO2:-NO2+1])*
+                              MHDpy.gaussLineInt(
+                              MHDpy.Ax,xip1,yip1,zip1,xijk,yijk,zijk))
+for j in range(NO2,ny+NO2):
+    xijk = x[NO2:-NO2,j,NO2:-NO2]
+    xjp1 = x[NO2:-NO2,j+1,NO2:-NO2]
+    yijk = y[NO2:-NO2,j,NO2:-NO2]
+    yjp1 = y[NO2:-NO2,j+1,NO2:-NO2]
+    zijk = z[NO2:-NO2,j,NO2:-NO2]
+    zjp1 = z[NO2:-NO2,j+1,NO2:-NO2]
+    LAj[NO2:-NO2,j,NO2:-NO2]=((y[NO2:-NO2,j+1,NO2:-NO2]-
+                               y[NO2:-NO2,j,NO2:-NO2])*
+                              MHDpy.gaussLineInt(
+                              MHDpy.Ay,xjp1,yjp1,zjp1,xijk,yijk,zijk))    
+for k in range(NO2,nz+NO2):
+    xijk = x[NO2:-NO2,NO2:-NO2,k]
+    xkp1 = x[NO2:-NO2,NO2:-NO2,k+1]
+    yijk = y[NO2:-NO2,NO2:-NO2,k]
+    ykp1 = y[NO2:-NO2,NO2:-NO2,k+1]
+    zijk = z[NO2:-NO2,NO2:-NO2,k]
+    zkp1 = z[NO2:-NO2,NO2:-NO2,k+1]
+    LAk[NO2:-NO2,NO2:-NO2,k]=((z[NO2:-NO2,NO2:-NO2,k+1]-
+                               z[NO2:-NO2,NO2:-NO2,k])*
+                              MHDpy.gaussLineInt(
+                              MHDpy.Az,xkp1,ykp1,zkp1,xijk,yijk,zijk))
 
+bi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2] = (LAj[NO2:-NO2+1,NO2:-NO2-1,NO2:-NO2-1] - 
+                                    LAj[NO2:-NO2+1,NO2:-NO2-1,NO2+1:-NO2] +
+                                    LAk[NO2:-NO2+1,NO2+1:-NO2,NO2:-NO2-1] -
+                                    LAk[NO2:-NO2+1,NO2:-NO2-1,NO2:-NO2-1])
+bj[NO2:-NO2:,NO2:-NO2+1,NO2:-NO2] = -(LAi[NO2:-NO2-1,NO2:-NO2+1,NO2:-NO2-1] -
+                                      LAi[NO2:-NO2-1,NO2:-NO2+1,NO2+1:-NO2] +
+                                      LAk[NO2+1:-NO2,NO2:-NO2+1,NO2:-NO2-1] -
+                                      LAk[NO2:-NO2-1,NO2:-NO2+1,NO2:-NO2-1])
+bk[NO2:-NO2:,NO2:-NO2,NO2:-NO2+1] = (LAi[NO2:-NO2-1,NO2:-NO2-1,NO2:-NO2+1] - 
+                                     LAi[NO2:-NO2-1,NO2+1:-NO2,NO2:-NO2+1] +
+                                     LAj[NO2+1:-NO2,NO2:-NO2-1,NO2:-NO2+1] -
+                                     LAj[NO2:-NO2-1,NO2:-NO2-1,NO2:-NO2+1])
+bi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2] = (bi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]/
+                                    dy[NO2:-NO2+2,NO2:-NO2,NO2:-NO2]/
+                                    dz[NO2:-NO2+2,NO2:-NO2,NO2:-NO2])
+bj[NO2:-NO2:,NO2:-NO2+1,NO2:-NO2] = (bj[NO2:-NO2:,NO2:-NO2+1,NO2:-NO2]/
+                                     dz[NO2:-NO2,NO2:-NO2+2,NO2:-NO2]/
+                                     dx[NO2:-NO2,NO2:-NO2+2,NO2:-NO2])
+bk[NO2:-NO2:,NO2:-NO2,NO2:-NO2+1] = (bk[NO2:-NO2:,NO2:-NO2,NO2:-NO2+1]/
+                                     dx[NO2:-NO2,NO2:-NO2,NO2:-NO2+2]/
+                                     dy[NO2:-NO2,NO2:-NO2,NO2:-NO2+2])
+bi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2] = (bi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]+
+                                    n.tanh(yi[NO2:-NO2+1,NO2:-NO2,NO2:-NO2]/lam))
 #
 # calculate bx, by, bz at cell center, 2nd order accurate, equation (36) in
 # Lyon et al., [2004] (the 1/8 in Lyon et al., [2004] is actually a typo)
 bx = (bi[1:,:,:] + bi[:-1,:,:])/2.
 by = (bj[:,1:,:] + bj[:,:-1,:])/2.
 bz = (bk[:,:,1:] + bk[:,:,:-1])/2.
-p=(bx**2+by**2+bz**2)/2
+
 
 # set boundary conditions 
 # For Orszag-Tang vortex simulation, use periopdic for both x and y
@@ -197,11 +265,13 @@ bk_p = bk
 # MAIN LOOP
 # simulation Time information
 count = 0
-Nstep=10
+Nstep=10000
 Time = 0
 RealT=0
 step=0
 imageNum=0
+flux = []
+simTime = []
 print 'About to compute'
 #while (Time < 5.0):
 for step in n.arange(Nstep):
@@ -451,7 +521,7 @@ for step in n.arange(Nstep):
     RealT = RealT + RealDT
     step = step +1
     # plot results
-    if((step < 100)):
+    if((step % 50)==1):
         # check divB
         divB =( ( (bi[NO2+1:-NO2,NO2:-NO2,NO2:-NO2] - 
             bi[       NO2:-NO2-1,NO2:-NO2,NO2:-NO2])*
@@ -466,19 +536,88 @@ for step in n.arange(Nstep):
             dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]/
             dz[NO2:-NO2,NO2:-NO2,NO2:-NO2])
     
-        pl.figure()
-        pl.pcolor(n.squeeze(xc[NO2:-NO2,NO2:-NO2,NO2:-NO2]),
-            n.squeeze(yc[NO2:-NO2,NO2:-NO2,NO2:-NO2]),
-            n.squeeze(rho[NO2:-NO2,NO2:-NO2,NO2:-NO2]))
-        pl.title('Simulation Time = %f' % Time)
+        k=4
+        golden_mean = (n.sqrt(5)-1.0)/2.0
+        figwidth = 12
+        figheight = 8
+        fig,ax=pl.subplots(nrows=2,ncols=3,figsize=(figwidth,figheight))
+        
+        levels = n.linspace(0,2,12)
+        cf0 = ax[0,0].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            rho[NO2:-NO2,NO2:-NO2,k],levels)
+        divider0 = make_axes_locatable(ax[0,0])
+        cax0 = divider0.append_axes("right", size="20%", pad=0.05)
+        cbar0 = pl.colorbar(cf0,cax=cax0)
+        ax[0,0].set_title(r'$\rho$')
+        
+        levels = n.linspace(-1.0,1.0,13)
+        cf1 = ax[0,1].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            vx[NO2:-NO2,NO2:-NO2,k],levels)
+        divider1 = make_axes_locatable(ax[0,1])
+        cax1 = divider1.append_axes("right", size="20%", pad=0.05)
+        cbar1 = pl.colorbar(cf1,cax=cax1)
+        ax[0,1].set_title(r'$V_X$')
+        
+        levels = n.linspace(0.0,2.0,13)
+        cf2 = ax[0,2].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            p[NO2:-NO2,NO2:-NO2,k],levels)
+        divider2 = make_axes_locatable(ax[0,2])
+        cax2 = divider2.append_axes("right", size="20%", pad=0.05)
+        cbar2 = pl.colorbar(cf2,cax=cax2)
+        ax[0,2].set_title('P')
+        
+        levels = n.linspace(-0.15,0.15,13)
+        cf3 = ax[1,0].contourf(x[NO2:-NO2,NO2:-NO2,k],y[NO2:-NO2,NO2:-NO2,k],
+                            Ek[:,:,0],levels)
+        divider3 = make_axes_locatable(ax[1,0])
+        cax3 = divider3.append_axes("right", size="20%", pad=0.05)
+        cbar3 = pl.colorbar(cf3,cax=cax3)
+        ax[1,0].set_title(r'$E_K$')
+        
+        
+        levels = n.linspace(-1.0,1.0,13)
+        cf4 = ax[1,1].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            by[NO2:-NO2,NO2:-NO2,k],levels)
+        divider4 = make_axes_locatable(ax[1,1])
+        cax4 = divider4.append_axes("right", size="20%", pad=0.05)
+        cbar4 = pl.colorbar(cf4,cax=cax4)
+        ax[1,1].set_title(r'$B_Y$')
+        
+        levels = n.linspace(-1.0e-13,1.0e-13,13)
+        cf5 = ax[1,2].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            bz[NO2:-NO2,NO2:-NO2,k],levels)
+        divider4 = make_axes_locatable(ax[1,2])
+        cax4 = divider4.append_axes("right", size="20%", pad=0.05)
+        cbar4 = pl.colorbar(cf4,cax=cax4)
+        ax[1,2].set_title(r'$B_Z$')
+                
+        pl.tight_layout()
+        fig.suptitle('Simulation Time = %f' % Time)
         saveFigName = os.path.join(imagedir,'%s-%06d.png'%(imagebase,imageNum))
         print saveFigName
         pl.savefig(saveFigName,dpi=100)
         pl.close()
+        
+        # calculate magnetic flux
+        xx = n.linspace(0,25.6,257)
+        yy = 0.0*xx
+        fint = interpolate.interp2d(xc[:,0,4],yc[0,:,4],by[:,:,4].T,kind='linear')
+        by_int = fint(xx,yy)
+        by_int[by_int < 0] = 0
+        flux.append(n.trapz(by_int[0,:],x=xx))
+        simTime.append(Time)
+        
         imageNum = imageNum + 1
         print 'Loop %d Sim Time = %f Real  Time = %f' % (step,Time,RealT)
         print 'Sim DT = %f Real DT = %f ' % (dt,RealDT)
         print ' Max(divB) = %f ' % n.max(n.abs(divB))
+
+fig,ax=pl.subplots(nrows=1)
+ax.plot(simTime,flux)
+ax.set_xlabel('Simulation Time')
+ax.set_ylabel('Flux')
+
+
 
 
                                                                                                                                                                                                 
