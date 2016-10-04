@@ -19,7 +19,10 @@ def reconstruct_3D(rho_h,NO2,PDMB,direction,limiter_type='PDM'):
     if (direction==1):
         #8-th order reconstruction
       
-        if ( limiter_type == '8th'):
+        if (limiter_type == '1st'):
+            rho_left = rho_h[NO2-1:-NO2,NO2:-NO2+1,NO2:-NO2+1]
+            rho_right = rho_h[NO2:-NO2+1,NO2:-NO2+1,NO2:-NO2+1]
+        elif ( limiter_type == '8th'):
             rho_left = (
                         -3*rho_h[NO2-4:-NO2-4+1,NO2:-NO2+1,NO2:-NO2+1]+
                         29*rho_h[NO2-3:-NO2-3+1,NO2:-NO2+1,NO2:-NO2+1]-
@@ -76,7 +79,10 @@ def reconstruct_3D(rho_h,NO2,PDMB,direction,limiter_type='PDM'):
         
     elif(direction==2):
    
-        if ( limiter_type == '8th'):
+        if (limiter_type == '1st'):
+            rho_left = rho_h[NO2:-NO2+1,NO2-1:-NO2,NO2:-NO2+1]
+            rho_right = rho_h[NO2:-NO2+1,NO2:-NO2+1,NO2:-NO2+1]
+        elif ( limiter_type == '8th'):
             rho_left = (
                         -3*rho_h[NO2:-NO2+1,NO2-4:-NO2-4+1,NO2:-NO2+1]+
                         29*rho_h[NO2:-NO2+1,NO2-3:-NO2-3+1,NO2:-NO2+1]-
@@ -132,7 +138,10 @@ def reconstruct_3D(rho_h,NO2,PDMB,direction,limiter_type='PDM'):
                                     rho_h[NO2:-NO2+1,NO2-2:-NO2-2+1,NO2:-NO2+1])
 
     elif(direction==3):
-        if( limiter_type == '8th'):
+        if (limiter_type == '1st'):
+            rho_left = rho_h[NO2:-NO2+1,NO2:-NO2+1,NO2-1:-NO2]
+            rho_right = rho_h[NO2:-NO2+1,NO2:-NO2+1,NO2:-NO2+1]
+        elif( limiter_type == '8th'):
             rho_left = (
                         -3*rho_h[NO2:-NO2+1,NO2:-NO2+1,NO2-4:-NO2-4+1]+
                         29*rho_h[NO2:-NO2+1,NO2:-NO2+1,NO2-3:-NO2-3+1]-
