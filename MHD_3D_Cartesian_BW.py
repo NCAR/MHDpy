@@ -416,8 +416,11 @@ for step in n.arange(Nstep):
             dx[NO2:-NO2,NO2:-NO2,NO2:-NO2]/
             dy[NO2:-NO2,NO2:-NO2,NO2:-NO2]/
             dz[NO2:-NO2,NO2:-NO2,NO2:-NO2])
-    
-        fig,ax = pl.subplots(nrows=2,ncols=3,figsize=(12,4))
+        
+        golden_mean = (n.sqrt(5)-1.0)/2.0
+        figwidth = 12
+        figheight = 8
+        fig,ax = pl.subplots(nrows=2,ncols=3,figsize=(figwidth,figheight))
         ax[0,0].plot(n.squeeze(xc[NO2:-NO2,NO2:-NO2,NO2:-NO2]),
                     n.squeeze(rho[NO2:-NO2,NO2:-NO2,NO2:-NO2]))
         ax[0,0].set_ylim([0,1.2])

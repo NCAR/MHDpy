@@ -268,7 +268,7 @@ bk_p = bk
 # MAIN LOOP
 # simulation Time information
 count = 0
-Nstep=10000
+Nstep=5000
 Time = 0
 RealT=0
 step=0
@@ -543,59 +543,68 @@ for step in n.arange(Nstep):
         golden_mean = (n.sqrt(5)-1.0)/2.0
         figwidth = 12
         figheight = 8
-        fig,ax=pl.subplots(nrows=2,ncols=3,figsize=(figwidth,figheight))
+        fig,ax=pl.subplots(nrows=3,ncols=2,figsize=(figwidth,figheight))
         
         levels = n.linspace(0,2,12)
-        cf0 = ax[0,0].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
-                            rho[NO2:-NO2,NO2:-NO2,k],levels)
+        cf0 = ax[0,0].pcolor(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            rho[NO2:-NO2,NO2:-NO2,k],vmin=0,vmax=8,
+                            cmap=pl.get_cmap('viridis'))
         divider0 = make_axes_locatable(ax[0,0])
-        cax0 = divider0.append_axes("right", size="20%", pad=0.05)
+        cax0 = divider0.append_axes("right", size="10%", pad=0.05)
         cbar0 = pl.colorbar(cf0,cax=cax0)
         ax[0,0].set_title(r'$\rho$')
+        ax[0,0].set_xlim((0,25))
+        ax[0,0].set_ylim((-6,6))
         
         levels = n.linspace(-1.0,1.0,13)
-        cf1 = ax[0,1].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
-                            vx[NO2:-NO2,NO2:-NO2,k],levels)
+        cf1 = ax[0,1].pcolor(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            vx[NO2:-NO2,NO2:-NO2,k],vmin=-2.5e-1,vmax=2.5e-1,
+                            cmap=pl.get_cmap('coolwarm'))
         divider1 = make_axes_locatable(ax[0,1])
-        cax1 = divider1.append_axes("right", size="20%", pad=0.05)
+        cax1 = divider1.append_axes("right", size="10%", pad=0.05)
         cbar1 = pl.colorbar(cf1,cax=cax1)
         ax[0,1].set_title(r'$V_X$')
         
         levels = n.linspace(0.0,2.0,13)
-        cf2 = ax[0,2].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
-                            p[NO2:-NO2,NO2:-NO2,k],levels)
-        divider2 = make_axes_locatable(ax[0,2])
-        cax2 = divider2.append_axes("right", size="20%", pad=0.05)
+        cf2 = ax[1,0].pcolor(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            p[NO2:-NO2,NO2:-NO2,k],vmin=0,vmax=2.0,
+                            cmap=pl.get_cmap('plasma'))
+        divider2 = make_axes_locatable(ax[1,0])
+        cax2 = divider2.append_axes("right", size="10%", pad=0.05)
         cbar2 = pl.colorbar(cf2,cax=cax2)
-        ax[0,2].set_title('P')
+        ax[1,0].set_title('P')
         
         levels = n.linspace(-0.15,0.15,13)
-        cf3 = ax[1,0].contourf(x[NO2:-NO2,NO2:-NO2,k],y[NO2:-NO2,NO2:-NO2,k],
-                            Ek[:,:,0],levels)
-        divider3 = make_axes_locatable(ax[1,0])
-        cax3 = divider3.append_axes("right", size="20%", pad=0.05)
+        cf3 = ax[1,1].pcolor(x[NO2:-NO2,NO2:-NO2,k],y[NO2:-NO2,NO2:-NO2,k],
+                            Ek[:,:,0],vmin=-5.0e-2,vmax=5.0e-2,
+                            cmap=pl.get_cmap('RdBu'))
+        divider3 = make_axes_locatable(ax[1,1])
+        cax3 = divider3.append_axes("right", size="10%", pad=0.05)
         cbar3 = pl.colorbar(cf3,cax=cax3)
-        ax[1,0].set_title(r'$E_K$')
+        ax[1,1].set_title(r'$E_K$')
         
         
         levels = n.linspace(-1.0,1.0,13)
-        cf4 = ax[1,1].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
-                            by[NO2:-NO2,NO2:-NO2,k],levels)
-        divider4 = make_axes_locatable(ax[1,1])
-        cax4 = divider4.append_axes("right", size="20%", pad=0.05)
+        cf4 = ax[2,0].pcolor(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            by[NO2:-NO2,NO2:-NO2,k],vmin=-0.1,vmax=0.1,
+                            cmap=pl.get_cmap('seismic'))
+        divider4 = make_axes_locatable(ax[2,0])
+        cax4 = divider4.append_axes("right", size="10%", pad=0.05)
         cbar4 = pl.colorbar(cf4,cax=cax4)
-        ax[1,1].set_title(r'$B_Y$')
+        ax[2,0].set_title(r'$B_Y$')
         
         levels = n.linspace(-1.0e-13,1.0e-13,13)
-        cf5 = ax[1,2].contourf(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
-                            bz[NO2:-NO2,NO2:-NO2,k],levels)
-        divider4 = make_axes_locatable(ax[1,2])
-        cax4 = divider4.append_axes("right", size="20%", pad=0.05)
-        cbar4 = pl.colorbar(cf4,cax=cax4)
-        ax[1,2].set_title(r'$B_Z$')
+        cf5 = ax[2,1].pcolor(xc[NO2:-NO2,NO2:-NO2,k],yc[NO2:-NO2,NO2:-NO2,k],
+                            bz[NO2:-NO2,NO2:-NO2,k],vmin=-0.1,vmax=0.1,
+                            cmap=pl.get_cmap('PuOr'))
+        divider5 = make_axes_locatable(ax[2,1])
+        cax5 = divider5.append_axes("right", size="10%", pad=0.05)
+        cbar5 = pl.colorbar(cf5,cax=cax5)
+        ax[2,1].set_title(r'$B_Z$')
                 
+       
+        fig.suptitle('Simulation Time = %f' % Time,fontsize='x-large')
         pl.tight_layout()
-        fig.suptitle('Simulation Time = %f' % Time)
         saveFigName = os.path.join(imagedir,'%s-%06d.png'%(imagebase,imageNum))
         print saveFigName
         pl.savefig(saveFigName,dpi=100)
